@@ -1,0 +1,39 @@
+{
+  "scenarios": [
+    {
+      "rate_rps": 10,
+      "sync_s": 300,
+      "centralised_bytes": 47310514.918431126,
+      "federated_bytes": 1198080.0,
+      "reduction_pct": 97.4676242647842
+    },
+    {
+      "rate_rps": 100,
+      "sync_s": 300,
+      "centralised_bytes": 473105149.1843112,
+      "federated_bytes": 1198080.0,
+      "reduction_pct": 99.74676242647843
+    },
+    {
+      "rate_rps": 452,
+      "sync_s": 300,
+      "centralised_bytes": 2138435274.3130867,
+      "federated_bytes": 1198080.0,
+      "reduction_pct": 99.94397398815894
+    },
+    {
+      "rate_rps": 452,
+      "sync_s": 15,
+      "centralised_bytes": 2138435274.3130867,
+      "federated_bytes": 23961600.0,
+      "reduction_pct": 98.87947976317885
+    }
+  ],
+  "centralised_bytes": 332982.8040121765,
+  "federated_bytes": 83200,
+  "update_bytes": 1040,
+  "rounds": 20,
+  "nodes": 2,
+  "reduction_pct": 75.01372473367798,
+  "mean_request_bytes": 27.37877020742542
+}
