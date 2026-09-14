@@ -186,12 +186,19 @@ def main():
                     metrics_all[nm][k] = []
                 metrics_all[nm][k].append(v)
             
+    # Aggregate once and keep it. Computing this inside the print loop and
+    # discarding it left the downstream comparison indexing the raw per-seed
+    # lists, which crashed before fed_model.json was ever written.
+    agg = {nm: {k: {"mean": float(np.mean(v)), "std": float(np.std(v))}
+                for k, v in per_metric.items()}
+           for nm, per_metric in metrics_all.items()}
+
     print("\n" + "=" * 90)
     print(f"{'model':<16}{'ROC-AUC':>14}{'PR-AUC':>14}{'XSS@0.1%':>12}"
           f"{'SQLi@0.1%':>12}{'FPR web':>10}{'FPR api':>10}")
     print("-" * 90)
     for nm in metrics_all:
-        r = {k: {"mean": float(np.mean(v)), "std": float(np.std(v))} for k, v in metrics_all[nm].items()}
+        r = agg[nm]
         print(f"{nm:<16}{r['roc_auc']['mean']:>6.4f}±{r['roc_auc']['std']:<6.4f} "
               f"{r['pr_auc']['mean']:>6.4f}±{r['pr_auc']['std']:<6.4f} "
               f"{r['xss_recall@fpr0.001']['mean']:>4.3f}±{r['xss_recall@fpr0.001']['std']:<4.3f} "
@@ -200,20 +207,30 @@ def main():
               f"{r['fpr_api']['mean']:>10.4f}")
     print("=" * 90)
     
-    fed = metrics_all["Federated"]
-    beats = all(fed["roc_auc"]["mean"] > metrics_all[n]["roc_auc"]["mean"] for n in ("Edge A (web)", "Edge B (api)"))
+    fed = agg["Federated"]
+    isolated = ("Edge A (web)", "Edge B (api)")
+    beats = all(fed["roc_auc"]["mean"] > agg[n]["roc_auc"]["mean"] for n in isolated)
     print(f"Federated outperforms every isolated silo (on average): {'YES' if beats else 'NO'}")
+    # Report the margin against the standard deviation: a mean difference smaller
+    # than the spread across seeds is not a result.
+    for n in isolated:
+        d = fed["roc_auc"]["mean"] - agg[n]["roc_auc"]["mean"]
+        pooled = max(fed["roc_auc"]["std"], agg[n]["roc_auc"]["std"])
+        print(f"  vs {n:<14} ROC-AUC {d:+.4f}  (spread {pooled:.4f}) "
+              f"-> {'within noise' if abs(d) < pooled else 'outside noise'}")
 
     out = {
         "config": {"features": "poly-ngram+syntactic", "ngram_n": F.NGRAM_N,
                    "ngram_d": F.NGRAM_D, "dim": F.DIM, "normalisation": F.NORM,
                    "split": "domain", "rounds": ROUNDS, "local_epochs": LOCAL_EPOCHS,
-                   "seed": SEED},
+                   "seeds": SEEDS, "shipped_seed": SEEDS[0]},
         "coefficients": glob.coef_[0].tolist(),
         "intercept": float(glob.intercept_[0]),
         "update_bytes": (F.DIM + 1) * 4,
         "unique_payloads": uniq,
         "metrics": metrics,
+        "metrics_aggregate": agg,
+        "metrics_per_seed": metrics_all,
         "convergence": hist,
     }
     with open("fed_model.json", "w") as fh:

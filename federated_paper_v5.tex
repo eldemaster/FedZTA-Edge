@@ -216,7 +216,9 @@ The mechanism is straightforward once stated. When threat campaigns are shared, 
 \subsection{Detection Effectiveness}
 \begin{table}[htbp]
 \centering
-\caption{Detection on unseen payloads, domain-split nodes, $D=256$}
+\caption{Detection on unseen payloads, domain-split nodes, $D=256$.
+Mean $\pm$ standard deviation over eight seeds. Edge~A serves web traffic,
+Edge~B serves API traffic.}
 \label{tab:detection}
 
 \resizebox{\columnwidth}{!}{%
@@ -224,8 +226,8 @@ The mechanism is straightforward once stated. When threat campaigns are shared, 
 \toprule
 \textbf{Model} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{XSS} & \textbf{SQLi} & \multicolumn{2}{c}{\textbf{FPR}} \\
  & & & \multicolumn{2}{c}{\footnotesize @0.1\% FPR} & \footnotesize web & \footnotesize api \\ \midrule
-Edge A (web) & 0.9859$\pm$0.0035 & 0.9871$\pm$0.0032 & 0.954$\pm$0.046 & 0.806$\pm$0.073 & 0.0010 & 0.0052 \\
-Edge B (API) & 0.9938$\pm$0.0036 & 0.9940$\pm$0.0031 & 0.979$\pm$0.020 & \textbf{0.879$\pm$0.033} & 0.0008 & \textbf{0.0005} \\
+Edge A & 0.9859$\pm$0.0035 & 0.9871$\pm$0.0032 & 0.954$\pm$0.046 & 0.806$\pm$0.073 & 0.0010 & 0.0052 \\
+Edge B & 0.9938$\pm$0.0036 & 0.9940$\pm$0.0031 & 0.979$\pm$0.020 & \textbf{0.879$\pm$0.033} & 0.0008 & \textbf{0.0005} \\
 Federated & \textbf{0.9947$\pm$0.0019} & \textbf{0.9950$\pm$0.0017} & \textbf{0.980$\pm$0.022} & 0.865$\pm$0.059 & \textbf{0.0005} & 0.0007 \\ \bottomrule
 \end{tabular}%
 }
