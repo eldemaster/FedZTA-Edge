@@ -19,6 +19,8 @@ import os
 import statistics
 import threading
 import time
+import time
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import fedzta_auth as AUTH
@@ -194,6 +196,15 @@ class Aggregator(BaseHTTPRequestHandler):
             _last_seen[cid] = now
             k = len(_latest)
         print(f"[accept] {cid}  peers={k}", flush=True)
+        try:
+            pass
+            w, b, k_clients, ids = aggregate()
+            models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+            os.makedirs(models_dir, exist_ok=True)
+            with open(os.path.join(models_dir, f"global_{int(time.time())}.json"), "w") as fh:
+                json.dump({"weights": w, "bias": b, "n_clients": k_clients, "clients": ids}, fh)
+        except Exception as e:
+            print("Error saving version:", e)
         self._send(200, {"ok": True, "peers": k})
 
     def do_GET(self):

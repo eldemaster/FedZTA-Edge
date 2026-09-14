@@ -1,0 +1,1 @@
+[{"payload": "GET / HTTP/1.1", "label": 0}, {"payload": "GET /api/v1/sensors/temp HTTP/1.1", "label": 0}, {"payload": "POST /login ' OR 1=1 --", "label": 1}, {"payload": "<script>alert(1)</script>", "label": 1}]

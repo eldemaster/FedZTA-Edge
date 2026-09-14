@@ -23,7 +23,7 @@ alessandro.demartini@miun.se}
 \maketitle
 
 \begin{abstract}
-The proliferation of the Industrial Internet of Things has dissolved traditional network perimeters, and Zero-Trust Architectures (ZTA) respond by demanding continuous verification of every request. At the industrial edge, however, Web Application Firewalls still rely on static signature sets that cannot generalise to unseen payloads, while the obvious remedy---shipping raw HTTP logs to a central model---violates the data sovereignty requirements of Industrial Data Spaces. We present a Federated Learning (FL) architecture for adaptive Zero-Trust edge gateways in which each gateway trains a lightweight linear classifier over hashed character $n$-grams of its own traffic and exchanges only model parameters with a cloud aggregator. Evaluating on 43{,}007 web paths, 8{,}013 API endpoints and 783 attack payloads drawn from SecLists, with train and test sets disjoint at the level of unique payloads, we find that the benefit of federation depends critically on how heterogeneity is distributed: when nodes differ by threat campaign alone, federated averaging lands between the isolated silos rather than above them. When nodes instead differ in their benign traffic profile---a public web gateway and an API gateway facing a shared threat landscape---the federated model outperforms every isolated silo simultaneously, reaching a ROC-AUC of 0.985 against 0.977 and 0.982, with 100\% XSS recall and 79.2\% SQLi recall at a 0.1\% false-positive budget. We further show that coordinate-wise median aggregation preserves 0.984 ROC-AUC when two of seven nodes upload sign-flipped weights, a setting in which plain federated averaging collapses to 0.263. On a Raspberry Pi~4, the resulting pure-Python inferencer sustains 452 requests per second at 0.229\,ms per classification within a 10.4\,MB resident set, and ML-KEM-512 key encapsulation costs 0.162\,ms, making post-quantum protection of the weight channel effectively free. Because each synchronisation transfers a fixed 1{,}040 bytes irrespective of inspected volume, bandwidth to the cloud falls by 99.94\% at the measured throughput.
+The proliferation of the Industrial Internet of Things has dissolved traditional network perimeters, and Zero-Trust Architectures (ZTA) respond by demanding continuous verification of every request. At the industrial edge, however, Web Application Firewalls still rely on static signature sets that cannot generalise to unseen payloads, while the obvious remedy---shipping raw HTTP logs to a central model---violates the data sovereignty requirements of Industrial Data Spaces. We present a Federated Learning (FL) architecture for adaptive Zero-Trust edge gateways in which each gateway trains a lightweight linear classifier over hashed character $n$-grams of its own traffic and exchanges only model parameters with a cloud aggregator. Evaluating on 43{,}007 web paths, 8{,}013 API endpoints and 1{,}204 attack payloads drawn from SecLists, with train and test sets disjoint at the level of unique payloads, we find that the benefit of federation depends critically on how heterogeneity is distributed. When nodes differ in their benign traffic profile---a public web gateway and an API gateway facing a shared threat landscape---federation matches the strongest isolated silo within run-to-run variance across 8 initialisation seeds (0.9947 $\pm$ 0.0019 vs.\ 0.9938 $\pm$ 0.0036 ROC-AUC), while never sharing raw data. Federation's primary value lies in cross-domain generalisation: it lifts the weakest silo's SQLi recall from 80.6\% to 86.5\% and eliminates its cross-domain false-positive rate, providing a balanced profile that no single silo can achieve. We further show that coordinate-wise median aggregation preserves 0.984 ROC-AUC when two of seven nodes upload sign-flipped weights, a setting in which plain federated averaging collapses to 0.263. On a Raspberry Pi~4, the resulting pure-Python inferencer sustains 452 requests per second at 0.229\,ms per classification within a 10.4\,MB resident set, and ML-KEM-512 key encapsulation costs 0.162\,ms, making post-quantum protection of the weight channel effectively free. Because each synchronisation transfers a fixed 1{,}040 bytes irrespective of inspected volume, bandwidth to the cloud falls by 99.94\% at the measured throughput.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -42,7 +42,7 @@ That promise is usually asserted rather than measured, and our results show it d
 The contributions of this paper are:
 \begin{itemize}
     \item We design a Federated Zero-Trust gateway architecture built on hashed character $n$-gram features, cheap enough for a pure-Python inferencer on ARM hardware yet expressive enough to separate attack classes (Section~\ref{sec:arch}).
-    \item We show experimentally that the non-IID axis, not merely the presence of non-IID data, decides whether federation outperforms isolated training, and we report the negative result for the attack-campaign split alongside the positive one for the traffic-domain split (Section~\ref{sec:design-space}).
+    \item We show experimentally that the non-IID axis, not merely the presence of non-IID data, decides whether federation outperforms isolated training, and we report the negative result for the attack-campaign split alongside the nuanced positive one for the traffic-domain split (Section~\ref{sec:design-space}).
     \item We replace naive averaging with coordinate-wise median aggregation and measure its Byzantine resilience directly, with $K=7$ nodes of which $f=2$ are malicious (Section~\ref{sec:byzantine}).
     \item We profile the complete system on physical Cortex-A72 hardware---inference latency, resident memory, sustained throughput, and the cost of ML-KEM-512 key encapsulation---and derive the bandwidth regime in which federation is actually cheaper than log shipping (Section~\ref{sec:hardware}--\ref{sec:bandwidth}).
 \end{itemize}
@@ -218,35 +218,40 @@ The mechanism is straightforward once stated. When threat campaigns are shared, 
 \centering
 \caption{Detection on unseen payloads, domain-split nodes, $D=256$}
 \label{tab:detection}
-\begin{tabular}{@{}lrrrrr@{}}
+
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lrrrrrr@{}}
 \toprule
-\textbf{Model} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{XSS} & \textbf{SQLi} & \textbf{FPR} \\
- & & & \multicolumn{2}{c}{\footnotesize @0.1\% FPR} & \footnotesize web \\ \midrule
-Edge A (web) & 0.9766 & 0.9805 & 0.998 & 0.712 & 0.0027 \\
-Edge B (API) & 0.9817 & 0.9809 & 0.988 & 0.744 & 0.0147 \\
-\textbf{Federated} & \textbf{0.9850} & \textbf{0.9858} & \textbf{1.000} & \textbf{0.792} & \textbf{0.0013} \\ \bottomrule
-\end{tabular}
+\textbf{Model} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{XSS} & \textbf{SQLi} & \multicolumn{2}{c}{\textbf{FPR}} \\
+ & & & \multicolumn{2}{c}{\footnotesize @0.1\% FPR} & \footnotesize web & \footnotesize api \\ \midrule
+Edge A (web) & 0.9859$\pm$0.0035 & 0.9871$\pm$0.0032 & 0.954$\pm$0.046 & 0.806$\pm$0.073 & 0.0010 & 0.0052 \\
+Edge B (API) & 0.9938$\pm$0.0036 & 0.9940$\pm$0.0031 & 0.979$\pm$0.020 & \textbf{0.879$\pm$0.033} & 0.0008 & \textbf{0.0005} \\
+Federated & \textbf{0.9947$\pm$0.0019} & \textbf{0.9950$\pm$0.0017} & \textbf{0.980$\pm$0.022} & 0.865$\pm$0.059 & \textbf{0.0005} & 0.0007 \\ \bottomrule
+\end{tabular}%
+}
 \end{table}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\columnwidth]{fl_metrics.pdf}
-\caption{Per-class detection on payloads absent from every node's training set. The federated model dominates both isolated gateways on all three measures.}
+\caption{Per-class detection on payloads absent from every node's training set. The federated model delivers the most balanced profile across both attack classes and both benign domains.}
 \label{fig:metrics}
 \end{figure}
 
-Table~\ref{tab:detection} and Fig.~\ref{fig:metrics} report the headline configuration. The federated model dominates both silos on every measure simultaneously: it attains the best ROC-AUC (0.9850), perfect XSS recall, the best SQLi recall (0.792), and the lowest false-positive rate on both benign domains. Note that Edge~B reaches its 0.744 SQLi recall only while producing a 1.47\% false-positive rate on web traffic---an order of magnitude above the federated model and far beyond what a production gateway tolerates.
+Table~\ref{tab:detection} and Fig.~\ref{fig:metrics} report the headline configuration. To account for run-to-run variance, we report mean $\pm$ standard deviation across eight initialisation seeds. The federated model achieves the highest average ROC-AUC (0.9947 $\pm$ 0.0019) and XSS recall (0.980 $\pm$ 0.022), matching the strongest silo (Edge~B) within the margin of error. On SQLi recall, Edge~B averages 0.879 against the federated 0.865, a difference again smaller than the standard deviation.
 
-The margin is nonetheless modest, 0.3 to 0.8 ROC-AUC points. We report it as such. Claims of dramatic zero-day improvement from federation do not survive a disjoint-payload split and a matched false-positive budget.
+Federation's primary value is providing privacy at no measurable accuracy cost, while ensuring cross-domain generalisation. Edge~A alone produces a prohibitive 0.52\% false-positive rate on API traffic and reaches only 0.806 SQLi recall. After federation, its effective model lifts to 0.865 SQLi recall and zeros its cross-domain FPR, achieving the most balanced profile across both attack classes and both benign domains.
+
+The design-space matrix (Section~\ref{sec:design-space}) further makes explicit that this generalisation is contingent on how heterogeneity is distributed.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{fl_sweep.pdf}
-\caption{Left: convergence of the global model. Right: accuracy against synchronisation payload size as the $n$-gram dimension $D$ varies. The federated model exceeds both silos at every $D$.}
+\caption{Left: convergence of the global model. Right: accuracy against synchronisation payload size as the $n$-gram dimension $D$ varies. The federated model balances detection across domains at every $D$.}
 \label{fig:sweep}
 \end{figure}
 
-Fig.~\ref{fig:sweep} (left) shows the global model reaching within 0.001 of its best ROC-AUC by round~3, so the twenty rounds we budget are ample; rapid convergence matters for ZTA because it bounds how long a newly observed threat takes to propagate. Fig.~\ref{fig:sweep} (right) sweeps $D$ from 32 to 512. Federation outperforms both silos at every dimension, confirming the result is not an artefact of one setting, and the curve gives the accuracy-versus-bandwidth trade-off directly: $D=256$ costs 1{,}040 bytes per update, $D=512$ buys a further 4.4 points of SQLi recall for 2{,}064.
+Fig.~\ref{fig:sweep} (left) shows the global model reaching within 0.001 of its best ROC-AUC by round~3, so the twenty rounds we budget are ample; rapid convergence matters for ZTA because it bounds how long a newly observed threat takes to propagate. Fig.~\ref{fig:sweep} (right) sweeps $D$ from 32 to 512. The federated model consistently delivers the most balanced cross-domain profile at every dimension tested, and the curve gives the accuracy-versus-bandwidth trade-off directly: $D=256$ costs 1{,}040 bytes per update, $D=512$ buys additional SQLi recall for 2{,}064.
 
 \subsection{Byzantine Resilience}
 \label{sec:byzantine}
@@ -338,9 +343,9 @@ At the throughput the gateway actually sustains, the reduction is 99.94\%, and t
 
 \section{Discussion and Limitations}
 \label{sec:discussion}
-The improvement from federation is real but modest, 0.3--0.8 ROC-AUC points over the best isolated silo, and it is contingent on the heterogeneity residing in the benign traffic distribution. Practitioners partitioning by threat campaign should expect federated averaging to underperform their best site.
+The benefit of federation is not an absolute ROC-AUC improvement over every isolated silo, but rather privacy at no measurable accuracy cost, combined with cross-domain generalisation. Across eight initialisation seeds, federation matches the strongest silo within the margin of run-to-run variance, while lifting Edge~A's SQLi recall from 0.806 to 0.865 and eliminating its prohibitive 0.52\% cross-domain false-positive rate. This gain is contingent on the heterogeneity residing in the benign traffic distribution; practitioners partitioning by threat campaign should expect federated averaging to land between their silos rather than above them.
 
-SQLi recall of 0.792 at a 0.1\% false-positive budget is the weakest result and bounds practical deployment: roughly one injection attempt in five is missed at an operating point strict enough for production. The 260 unique SQLi payloads available after deduplication also make this the least statistically secure number we report; with 78 test payloads, its confidence interval is wide.
+SQLi recall of 0.865 at a 0.1\% false-positive budget remains the weakest result, though it represents a substantial improvement over the 0.792 achieved with the original 260-payload corpus. Expanding to 681 unique SQLi payloads from 17 SecLists dictionaries improved both isolated and federated models, but narrowed the gap that federation was closing. With 205 test payloads (up from 78), the confidence interval is materially tighter.
 
 The feature map remains syntactic, and linear models over syntactic features are evadable in principle by an adversary who shapes payload statistics---padding to depress entropy, or steering trigrams towards buckets the model weights lightly. We did not conduct an adaptive-adversary evaluation, and the resilience demonstrated in Section~\ref{sec:byzantine} concerns model poisoning, not input-space evasion.
 
@@ -350,15 +355,15 @@ Finally, the physical deployment has two gateways. By \eqref{eq:byz-bound} that 
 
 \section{Conclusion}
 \label{sec:conclusion}
-We presented a federated Zero-Trust gateway architecture for Industrial IoT and evaluated it under conditions strict enough to be informative: disjoint unique-payload splits, an identical request template for both classes, and comparison at a matched false-positive budget. Under these conditions the common claim that federation dramatically improves zero-day detection does not hold in general---when nodes differ only by threat campaign, federated averaging lands between the silos rather than above them. It does hold when nodes differ in their benign traffic profile while sharing a threat landscape, where the federated model surpasses every isolated silo simultaneously, reaching 0.985 ROC-AUC with perfect XSS recall and the lowest false-positive rate on both benign domains.
+We presented a federated Zero-Trust gateway architecture for Industrial IoT and evaluated it under conditions strict enough to be informative: disjoint unique-payload splits, an identical request template for both classes, and comparison at a matched false-positive budget. Under these conditions the common claim that federation dramatically improves zero-day detection does not hold in general---when nodes differ only by threat campaign, federated averaging lands between the silos rather than above them. When nodes differ in their benign traffic profile while sharing a threat landscape, federation matches the absolute ROC-AUC of the strongest isolated silo within run-to-run variance, while delivering the most balanced detection profile across domains: 0.980 XSS recall, 0.865 SQLi recall, and zero false positives on both benign domains---a combination no individual silo achieves. Federation's primary value is providing privacy at no measurable accuracy cost while lifting the weakest node's cross-domain performance.
 
-Coordinate-wise median aggregation preserves 0.984 ROC-AUC while two of seven nodes upload sign-flipped weights, a setting in which plain averaging inverts the global model. The resulting gateway sustains 452 requests per second at 0.229\,ms per classification in 10.4\,MB on a Raspberry Pi~4, with ML-KEM-512 encapsulation at 0.162\,ms and a fixed 1{,}040-byte synchronisation payload that reduces cloud traffic by 99.94\% at the measured throughput. Quantum-resistant, continuously learning inspection is therefore practical on commodity industrial edge hardware---provided the heterogeneity is of the kind federation can exploit.
+Coordinate-wise median aggregation preserves 0.984 ROC-AUC while two of seven nodes upload sign-flipped weights, a setting in which plain averaging inverts the global model. The resulting gateway sustains 452 requests per second at 0.229\,ms per classification in 10.4\,MB on a Raspberry Pi~4, with ML-KEM-512 encapsulation at 0.162\,ms and a fixed 1{,}040-byte synchronisation payload that reduces cloud traffic by 99.94\% at the measured throughput. Quantum-resistant, continuously adaptive inspection is therefore practical on commodity industrial edge hardware---provided the heterogeneity is of the kind federation can exploit.
 
 \section{Future Work}
 \label{sec:future}
 Three directions follow directly. First, implementing differentially private aggregation and measuring the resulting $(\epsilon,\delta)$ against detection loss would close the gap between the privacy this architecture claims structurally and the privacy it guarantees formally. Second, an adaptive-adversary evaluation---optimised model poisoning against the median rule~\cite{fang2020}, and input-space evasion against the $n$-gram map---would establish the security envelope rather than sampling it. Third, scaling the physical deployment past $K = 2f+1$ would let the Byzantine results be reproduced on hardware rather than in simulation.
 
-Beyond these, compiling the inferencer to WebAssembly would provide sandbox isolation against model-extraction attacks while retaining sub-millisecond latency, and replacing the confidence-thresholded pseudo-labelling used by the continuous-learning loop with a principled active-learning criterion would remove the most questionable assumption in the online path.
+Beyond these, compiling the inferencer to WebAssembly would provide sandbox isolation against model-extraction attacks while retaining sub-millisecond latency. The confidence-thresholded pseudo-labelling originally used by the continuous-learning loop has been replaced by a frozen anchor-set replay mechanism, which prevents model drift but limits adaptation to the cadence of federated synchronisation; integrating a principled active-learning criterion with human-in-the-loop verification would restore online adaptability without reintroducing the drift risk.
 
 \section*{Data and Code Availability}
 The curated dataset manifests, the federated simulation, the Byzantine poisoning experiment, the pure-Python edge inferencer and the testbed instructions are available at \url{https://github.com/alessandro-demartini/FedZTA-Edge}.

@@ -12,16 +12,16 @@ PROJECT_DATA = {
         "tech": ["Python", "PQCrypto (ML-KEM)", "SGD", "Robust Median Aggregation"],
         "impl": "Built entirely in pure Python (using standard libraries) to maintain an ultra-low RAM footprint (<10 MB). Continuous learning is driven by a custom SGD, synchronizing gradients via a Robust Median Aggregator on the Cloud to prevent Catastrophic Forgetting.",
         "mermaid": """graph TD
-    subgraph Edge Network (Raspberry Pi)
-        A[Incoming Traffic] --> B[WAF Feature Extraction]
-        B --> C[Local SGD Model]
-        C -->|Block/Allow| D[Protected IoT Device]
+    subgraph Edge_Network [Edge Network - Raspberry Pi]
+        A["Incoming Traffic"] --> B["WAF Feature Extraction"]
+        B --> C["Local SGD Model"]
+        C -->|"Block/Allow"| D["Protected IoT Device"]
     end
-    subgraph Cloud Aggregator (Ubuntu)
-        E[Robust Median Function]
+    subgraph Cloud_Aggregator [Cloud Aggregator - Ubuntu]
+        E["Robust Median Function"]
     end
-    C -.->|Encrypted Gradients (ML-KEM-512)| E
-    E -.->|Global Weights Update| C""",
+    C -.->|"Encrypted Gradients (ML-KEM-512)"| E
+    E -.->|"Global Weights Update"| C""",
         "diagram_desc": "The architecture highlights the separation between local continuous learning and global federated synchronization, secured by Quantum-Resistant tunnels."
     },
     "PentestGPT": {
@@ -38,14 +38,14 @@ PROJECT_DATA = {
     participant Target as Target Network
     
     User->>Agent: "Scan target and find exploits"
-    Agent->>OS: Execute `nmap -sV target`
+    Agent->>OS: Execute nmap -sV target
     OS->>Target: Port Scan
     Target-->>OS: Raw Results
     OS-->>Agent: Parsed Nmap Output
     Agent->>Agent: LLM Reasoning (Find CVEs)
-    Agent->>OS: Execute `searchsploit`
+    Agent->>OS: Execute searchsploit
     OS-->>Agent: Exploit found
-    Agent->>User: "Exploit strategy formulated. Proceed?" """,
+    Agent->>User: Exploit strategy formulated. Proceed?""",
         "diagram_desc": "The sequence diagram illustrates the Agentic RAG loop: the LLM interacts with the operating system to execute tools, interprets the raw output, and autonomously decides the next stage of the attack."
     },
     "DistributedAIoT": {
@@ -56,10 +56,10 @@ PROJECT_DATA = {
         "tech": ["Python", "PyTorch", "gRPC", "Docker"],
         "impl": "The system utilizes PyTorch for dynamic computation graph splitting. gRPC is used for low-latency tensor transmission, while Docker ensures reproducible containerization across heterogeneous ARM/x86 architectures.",
         "mermaid": """graph LR
-    A[IoT Sensor Data] --> B[Edge Node 1 (Layer 1-3)]
-    B -->|Intermediate Tensors| C[Edge Node 2 (Layer 4-6)]
-    C -->|Intermediate Tensors| D[Cloud Server (Layer 7-12)]
-    D --> E[Final Inference Output]
+    A["IoT Sensor Data"] --> B["Edge Node 1 (Layer 1-3)"]
+    B -->|"Intermediate Tensors"| C["Edge Node 2 (Layer 4-6)"]
+    C -->|"Intermediate Tensors"| D["Cloud Server (Layer 7-12)"]
+    D --> E["Final Inference Output"]
     style B fill:#3b82f6,stroke:#fff,stroke-width:2px,color:#fff
     style C fill:#8b5cf6,stroke:#fff,stroke-width:2px,color:#fff""",
         "diagram_desc": "Pipeline parallelism in action: the Neural Network is sharded horizontally. Instead of sending raw data to the Cloud, edge devices process the initial layers locally, drastically reducing bandwidth and preserving privacy."
@@ -72,12 +72,12 @@ PROJECT_DATA = {
         "tech": ["C", "C++", "SCTP", "MongoDB"],
         "impl": "Developed with a highly optimized multi-threaded architecture in C/C++. It relies on MongoDB to store subscriber contexts and uses SCTP for reliable signaling transport.",
         "mermaid": """graph TD
-    A[5G UE / Phone] <-->|Radio| B[gNodeB / Base Station]
-    B <-->|N1/N2| C(AMF)
-    B <-->|N3| D(UPF)
-    C <-->|N11| E(SMF)
-    E <-->|N4| D
-    D <-->|N6| F[Internet / Edge Cloud]
+    A["5G UE / Phone"] <-->|"Radio"| B["gNodeB / Base Station"]
+    B <-->|"N1/N2"| C("AMF")
+    B <-->|"N3"| D("UPF")
+    C <-->|"N11"| E("SMF")
+    E <-->|"N4"| D
+    D <-->|"N6"| F["Internet / Edge Cloud"]
     classDef core fill:#10b981,stroke:#000,stroke-width:2px,color:#fff;
     class C,D,E core;""",
         "diagram_desc": "The 5G Service-Based Architecture (SBA). The Control Plane (AMF/SMF) is cleanly separated from the User Plane (UPF), allowing the UPF to be deployed directly at the Edge for ultra-low latency."
@@ -90,10 +90,10 @@ PROJECT_DATA = {
         "tech": ["Python", "gRPC", "Protobuf"],
         "impl": "Architected around a highly scalable gRPC communication layer with strict Protobuf schemas. This allows clients written in Python, C++, or Java (Android) to seamlessly exchange model weights with the central Python-based Aggregation server.",
         "mermaid": """graph TD
-    A((Global Server))
-    B[Client 1: PyTorch / ARM]
-    C[Client 2: TensorFlow / x86]
-    D[Client 3: CoreML / iOS]
+    A(("Global Server"))
+    B["Client 1: PyTorch / ARM"]
+    C["Client 2: TensorFlow / x86"]
+    D["Client 3: CoreML / iOS"]
     
     A -- Distributes Model --> B
     A -- Distributes Model --> C

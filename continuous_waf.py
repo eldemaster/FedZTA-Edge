@@ -19,6 +19,7 @@ Changes over the previous revision:
 """
 import json
 import os
+import shutil
 import threading
 import time
 import urllib.parse
@@ -34,6 +35,9 @@ SECRET_PATH = os.environ.get("FEDZTA_SECRET", "gateway_secret.json")
 SYNC_INTERVAL = float(os.environ.get("FEDZTA_SYNC", "15"))
 LEARNING_RATE = 0.05
 BLOCK_THRESHOLD = 0.5
+SHADOW_MODE = os.environ.get("FEDZTA_SHADOW", "0") == "1"
+FAIL_OPEN = os.environ.get("FEDZTA_FAIL_OPEN", "1") == "1"
+LOCAL_WEIGHTS = "local_weights.json"
 
 
 class ContinuousSGD:
@@ -88,8 +92,18 @@ def load_model(path):
     return m["coefficients"], m["intercept"]
 
 
+def load_local_model():
+    if os.path.exists(LOCAL_WEIGHTS):
+        try:
+            with open(LOCAL_WEIGHTS) as f:
+                m = json.load(f)
+                return m["weights"], m["bias"]
+        except Exception:
+            pass
+    return load_model(MODEL_PATH)
+
 CLIENT_ID, SECRET = load_secret(SECRET_PATH)
-classifier = ContinuousSGD(*load_model(MODEL_PATH))
+classifier = ContinuousSGD(*load_local_model())
 
 
 def label_of(payload):
@@ -103,32 +117,85 @@ def label_of(payload):
 
 
 class Gateway(BaseHTTPRequestHandler):
-    # HTTP/1.1 keep-alive on a single-threaded server serialises concurrent
-    # connections: each client holds the one handler thread until it disconnects,
-    # so throughput collapses to roughly one connection at a time. A threading
-    # server is what a gateway would actually deploy.
     protocol_version = "HTTP/1.1"
+    
+    def inspect_request(self, method):
+        try:
+            self._inspect_request(method)
+        except Exception as e:
+            if FAIL_OPEN:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"blocked": false, "error": "fail_open"}')
+            else:
+                self.send_response(500)
+                self.end_headers()
 
-    def do_GET(self):
+    def _inspect_request(self, method):
+        if self.path in ['/health', '/metrics']:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"status": "ok"}')
+            return
         parsed = urllib.parse.urlparse(self.path)
         query = urllib.parse.unquote(parsed.query)
-        payload = f"GET {parsed.path}?{query}" if query else f"GET {parsed.path}"
+        url_payload = f"{method} {parsed.path}?{query}" if query else f"{method} {parsed.path}"
+        contexts = [url_payload]
+        
+        # Extract headers
+        for h in ['User-Agent', 'Referer', 'Cookie']:
+            val = self.headers.get(h)
+            if val:
+                contexts.append(val)
+                
+        # Read body for POST/PUT up to 8KB
+        if method in ['POST', 'PUT']:
+            length = int(self.headers.get('Content-Length', 0))
+            if length > 0:
+                length = min(length, 8192) # 8 KB cap
+                body_payload = self.rfile.read(length).decode(errors='ignore')
+                if body_payload:
+                    contexts.append(body_payload)
+                    
+        max_prob = 0.0
+        best_features = None
+        
+        # Score each context independently
+        for ctx in contexts:
+            features = F.extract(ctx)
+            prob = classifier.predict(features)
+            
+            # Active Learning (Pseudo-labeling) REMOVED to prevent Model Drift.
+            # Local updates should only occur via a verified Anchor Set or Honeypot.
+            pass
+                
+            if prob > max_prob:
+                max_prob = prob
+                best_features = features
+                
+        blocked = max_prob >= BLOCK_THRESHOLD
 
-        features = F.extract(payload)
-        prob = classifier.predict(features)
-        blocked = prob >= BLOCK_THRESHOLD
-
-        lbl = 1 if prob >= 0.9 else (0 if prob <= 0.1 else None)
-        if lbl is not None:
-            classifier.partial_fit(features, lbl)
-
-        body = json.dumps({"blocked": blocked, "probability": round(prob, 6),
-                           "client_id": CLIENT_ID}).encode()
-        self.send_response(403 if blocked else 200)
+        body = json.dumps({"blocked": blocked, "probability": round(max_prob, 6),
+                           "client_id": CLIENT_ID, "shadow_mode": SHADOW_MODE}).encode()
+        if SHADOW_MODE:
+            self.send_response(200) # Never block in shadow mode
+        else:
+            self.send_response(403 if blocked else 200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def do_GET(self):
+        self.inspect_request("GET")
+        
+    def do_POST(self):
+        self.inspect_request("POST")
+        
+    def do_PUT(self):
+        self.inspect_request("PUT")
 
     def log_message(self, *args):
         pass
@@ -150,7 +217,13 @@ def sync_loop():
                 g = json.loads(r.read().decode())
             if len(g["weights"]) == F.DIM:
                 classifier.load(g["weights"], g["bias"])
-                print(f"[sync] global model applied from {g.get('n_clients', '?')} peers",
+                import tempfile
+                with tempfile.NamedTemporaryFile('w', delete=False) as tf:
+                    json.dump({"weights": g["weights"], "bias": g["bias"]}, tf)
+                    tf.flush()
+                    os.fsync(tf.fileno())
+                shutil.move(tf.name, LOCAL_WEIGHTS)
+                print(f"[sync] global model applied from {g.get('n_clients', '?')} peers and persisted to disk",
                       flush=True)
             else:
                 print(f"[sync] dim mismatch {len(g['weights'])} != {F.DIM}", flush=True)
@@ -164,7 +237,26 @@ def sync_loop():
             print(f"[sync] failed: {exc}", flush=True)
 
 
+
+def anchor_set_loop():
+    while True:
+        import time
+        time.sleep(60)
+        try:
+            import os
+            if os.path.exists("anchor_set.json"):
+                import json
+                with open("anchor_set.json") as f:
+                    data = json.load(f)
+                for item in data:
+                    features = F.extract(item["payload"])
+                    classifier.partial_fit(features, item["label"])
+                print(f"[anchor] Replayed {len(data)} verified samples", flush=True)
+        except Exception:
+            pass
+
 if __name__ == "__main__":
+    threading.Thread(target=anchor_set_loop, daemon=True).start()
     print(f"[*] FedZTA Edge Gateway  id={CLIENT_ID}  dim={F.DIM}  cloud={CLOUD_URL}",
           flush=True)
     threading.Thread(target=sync_loop, daemon=True).start()
