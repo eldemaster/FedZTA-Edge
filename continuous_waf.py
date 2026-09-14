@@ -38,6 +38,7 @@ BLOCK_THRESHOLD = 0.5
 SHADOW_MODE = os.environ.get("FEDZTA_SHADOW", "0") == "1"
 FAIL_OPEN = os.environ.get("FEDZTA_FAIL_OPEN", "1") == "1"
 LOCAL_WEIGHTS = "local_weights.json"
+METRICS = {"requests": 0, "blocks": 0, "shadow_blocks": 0}
 
 
 class ContinuousSGD:
@@ -133,12 +134,24 @@ class Gateway(BaseHTTPRequestHandler):
                 self.end_headers()
 
     def _inspect_request(self, method):
-        if self.path in ['/health', '/metrics']:
+        if self.path == '/health':
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            body = b'{"status": "ok"}'
+            self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(b'{"status": "ok"}')
+            self.wfile.write(body)
             return
+        if self.path == '/metrics':
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            body = json.dumps(METRICS).encode()
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+            
+        METRICS["requests"] += 1
         parsed = urllib.parse.urlparse(self.path)
         query = urllib.parse.unquote(parsed.query)
         url_payload = f"{method} {parsed.path}?{query}" if query else f"{method} {parsed.path}"
@@ -176,6 +189,12 @@ class Gateway(BaseHTTPRequestHandler):
                 best_features = features
                 
         blocked = max_prob >= BLOCK_THRESHOLD
+        
+        if blocked:
+            if SHADOW_MODE:
+                METRICS["shadow_blocks"] += 1
+            else:
+                METRICS["blocks"] += 1
 
         body = json.dumps({"blocked": blocked, "probability": round(max_prob, 6),
                            "client_id": CLIENT_ID, "shadow_mode": SHADOW_MODE}).encode()
