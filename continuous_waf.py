@@ -13,21 +13,24 @@ Changes over the previous revision:
     previous hardcoded vector classified 100% of traffic as malicious.
   * Every upload carries a stable client_id so the Aggregator can take a median
     across peers instead of across a time window.
+  * Updates are signed with HMAC-SHA256 under an enrolment secret. An aggregator
+    that accepts unauthenticated updates has an unbounded f, which makes its
+    Byzantine guarantee vacuous no matter how robust the aggregation rule is.
 """
 import json
 import os
-import socket
 import threading
 import time
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import fedzta_auth as AUTH
 import fedzta_features as F
 
 CLOUD_URL = os.environ.get("FEDZTA_CLOUD", "http://192.168.1.144:5000")
-CLIENT_ID = os.environ.get("FEDZTA_CLIENT_ID", socket.gethostname())
 MODEL_PATH = os.environ.get("FEDZTA_MODEL", "fed_model.json")
+SECRET_PATH = os.environ.get("FEDZTA_SECRET", "gateway_secret.json")
 SYNC_INTERVAL = float(os.environ.get("FEDZTA_SYNC", "15"))
 LEARNING_RATE = 0.05
 BLOCK_THRESHOLD = 0.5
@@ -53,14 +56,27 @@ class ContinuousSGD:
 
     def snapshot(self):
         with self.lock:
-            return {"client_id": CLIENT_ID, "weights": list(self.weights),
-                    "bias": self.bias, "n_samples": self.local_updates}
+            return {"weights": list(self.weights), "bias": self.bias,
+                    "n_samples": self.local_updates}
 
     def load(self, weights, bias):
         with self.lock:
             self.weights = list(weights)
             self.bias = float(bias)
             self.local_updates = 0
+
+
+def load_secret(path):
+    """Enrolment credential issued by enroll_peer.py. Fail closed if absent: a
+    gateway that cannot authenticate must not fall back to unsigned updates."""
+    if not os.path.exists(path):
+        raise SystemExit(f"no enrolment secret at {path}; run enroll_peer.py "
+                         f"on the aggregator and deploy the gateway half")
+    if os.stat(path).st_mode & 0o077:
+        print(f"[!] {path} is group/world accessible; tighten to 0600", flush=True)
+    with open(path) as fh:
+        cfg = json.load(fh)
+    return cfg["client_id"], cfg["secret"]
 
 
 def load_model(path):
@@ -72,6 +88,7 @@ def load_model(path):
     return m["coefficients"], m["intercept"]
 
 
+CLIENT_ID, SECRET = load_secret(SECRET_PATH)
 classifier = ContinuousSGD(*load_model(MODEL_PATH))
 
 
@@ -121,7 +138,10 @@ def sync_loop():
     while True:
         time.sleep(SYNC_INTERVAL)
         try:
-            payload = json.dumps(classifier.snapshot()).encode()
+            snap = classifier.snapshot()
+            message = AUTH.build_update(CLIENT_ID, snap["weights"], snap["bias"],
+                                        snap["n_samples"], SECRET)
+            payload = json.dumps(message).encode()
             req = urllib.request.Request(f"{CLOUD_URL}/update", data=payload,
                                          headers={"Content-Type": "application/json"},
                                          method="POST")
@@ -134,6 +154,12 @@ def sync_loop():
                       flush=True)
             else:
                 print(f"[sync] dim mismatch {len(g['weights'])} != {F.DIM}", flush=True)
+        except urllib.error.HTTPError as exc:
+            detail = {401: "rejected: gateway not enrolled or bad signature",
+                      429: "rejected: rate limited",
+                      409: "rejected: update failed the norm gate"}.get(
+                          exc.code, f"HTTP {exc.code}")
+            print(f"[sync] {detail}", flush=True)
         except Exception as exc:
             print(f"[sync] failed: {exc}", flush=True)
 

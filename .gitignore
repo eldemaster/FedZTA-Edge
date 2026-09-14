@@ -17,3 +17,7 @@ venv/
 
 # OS
 .DS_Store
+
+# Enrolment credentials - never commit
+peers.json
+gateway_secret*.json

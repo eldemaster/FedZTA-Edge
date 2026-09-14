@@ -65,13 +65,56 @@ The ML-KEM benchmark needs `pqcrypto`.
 
 ## Running the cluster
 
+Gateways must be enrolled before they can contribute. An aggregator with no peer
+file rejects every update.
+
 ```sh
+# cloud: issue a credential per gateway
+python3 enroll_peer.py edge-web
+python3 enroll_peer.py edge-api
+scp gateway_secret_edge-web.json edge-web-host:~/gateway_secret.json
+
 # cloud
 python3 robust_cloud.py
 
-# each gateway
-FEDZTA_CLIENT_ID=edge-web FEDZTA_SYNC=15 python3 continuous_waf.py
+# each gateway (identity comes from gateway_secret.json)
+FEDZTA_SYNC=15 python3 continuous_waf.py
 ```
+
+`peers.json` and `gateway_secret*.json` are credentials, written 0600 and excluded
+from version control. Anything that can read a gateway secret can register as that
+gateway.
+
+### Control-plane authentication
+
+Coordinate-wise median tolerates `f` malicious clients only while `f` is bounded.
+Unauthenticated enrolment makes `f` unbounded: an attacker registers five sybil
+identities and owns the median regardless of how robust the rule is. Every update
+therefore carries an HMAC-SHA256 signature over a canonical serialisation, with a
+timestamp and single-use nonce.
+
+An update passes through, in order: signature/timestamp/nonce verification,
+per-identity rate limit, dimension and finiteness checks, an L2-norm gate against
+the reference peer norm, then aggregation.
+
+`test_auth_attacks.py` exercises all of it against a running cluster:
+
+```
+ 1  unsigned update (old wire format)                401
+ 2  sybil identity, self-signed                      401
+ 3  forged signature on enrolled identity            401
+ 4  tampered weights, stale signature                401
+ 5  replay of a captured valid update                401
+ 6  valid signature, timestamp 1h old                401
+ 7  second update inside the rate-limit window       429
+ 8  enrolled peer sends 50x scaled weights           409
+ 9  enrolled peer sends wrong dimension              400
+10  enrolled peer sends NaN weights                  400
+```
+
+The suite asserts the global model is unchanged when it finishes.
+
+`GET /health` reports enrolled peers, active peers and rejection counts by reason.
 
 `GET /weights` reports the peer count and the Byzantine tolerance actually achieved.
 Coordinate-wise median requires `K >= 2f+1`; with two gateways it returns
@@ -91,6 +134,10 @@ documented in §VI-B:
    classes it never trained on.
 
 ## Status
+
+The gateway inspects the request line only -- **no POST bodies, no headers, no
+cookies**. Detection figures are measured on query strings. This is the largest
+gap between the prototype and a deployable WAF.
 
 Differential privacy is specified but **not implemented**; no epsilon is claimed.
 ML-KEM is benchmarked as a component and is not yet wired into the live weight channel.
