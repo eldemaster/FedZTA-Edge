@@ -62,7 +62,8 @@ BOOT_W, BOOT_B = load_bootstrap(MODEL_PATH)
 
 
 def _count(reason):
-    _rejected[reason] = _rejected.get(reason, 0) + 1
+    with _lock:
+        _rejected[reason] = _rejected.get(reason, 0) + 1
 
 
 def l2(v):
@@ -131,6 +132,7 @@ def aggregate():
 
 class Aggregator(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+    timeout = 5
 
     def _send(self, code, obj):
         body = json.dumps(obj).encode()
@@ -199,8 +201,13 @@ class Aggregator(BaseHTTPRequestHandler):
             w, b, k_clients, ids = aggregate()
             models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
             os.makedirs(models_dir, exist_ok=True)
-            with open(os.path.join(models_dir, f"global_{int(time.time())}.json"), "w") as fh:
-                json.dump({"weights": w, "bias": b, "n_clients": k_clients, "clients": ids}, fh)
+            import tempfile, shutil
+            filename = os.path.join(models_dir, f"global_{int(time.time())}.json")
+            with tempfile.NamedTemporaryFile('w', delete=False, dir=models_dir) as tf:
+                json.dump({"weights": w, "bias": b, "n_clients": k_clients, "clients": ids}, tf)
+                tf.flush()
+                os.fsync(tf.fileno())
+            os.replace(tf.name, filename)
         except Exception as e:
             print("Error saving version:", e)
         self._send(200, {"ok": True, "peers": k})

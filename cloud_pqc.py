@@ -15,7 +15,11 @@ class PQC_Aggregator(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == '/exchange':
-            length = int(self.headers['Content-Length'])
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+            except ValueError:
+                self.send_error(400)
+                return
             ciphertext = self.rfile.read(length)
             
             shared_secret = ml_kem.decaps(secret_key, ciphertext)

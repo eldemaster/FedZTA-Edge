@@ -34,11 +34,12 @@ MODEL_PATH = os.environ.get("FEDZTA_MODEL", "fed_model.json")
 SECRET_PATH = os.environ.get("FEDZTA_SECRET", "gateway_secret.json")
 SYNC_INTERVAL = float(os.environ.get("FEDZTA_SYNC", "15"))
 LEARNING_RATE = 0.05
-BLOCK_THRESHOLD = 0.5
+BLOCK_THRESHOLD = 0.15
 SHADOW_MODE = os.environ.get("FEDZTA_SHADOW", "0") == "1"
 FAIL_OPEN = os.environ.get("FEDZTA_FAIL_OPEN", "1") == "1"
 LOCAL_WEIGHTS = "local_weights.json"
 METRICS = {"requests": 0, "blocks": 0, "shadow_blocks": 0}
+METRICS_LOCK = threading.Lock()
 
 
 class ContinuousSGD:
@@ -109,6 +110,7 @@ classifier = ContinuousSGD(*load_local_model())
 
 class Gateway(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+    timeout = 5
     
     def inspect_request(self, method):
         try:
@@ -149,7 +151,8 @@ class Gateway(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
             
-        METRICS["requests"] += 1
+        with METRICS_LOCK:
+            METRICS["requests"] += 1
         parsed = urllib.parse.urlparse(self.path)
         query = urllib.parse.unquote(parsed.query)
         contexts = []
@@ -166,7 +169,11 @@ class Gateway(BaseHTTPRequestHandler):
                 
         # Read body for POST/PUT up to 8KB
         if method in ['POST', 'PUT']:
-            length = int(self.headers.get('Content-Length', 0))
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+            except ValueError:
+                self.send_error(400, "Bad Request")
+                return
             if length > 0:
                 length = min(length, 8192) # 8 KB cap
                 body_payload = self.rfile.read(length).decode(errors='ignore')
@@ -192,10 +199,11 @@ class Gateway(BaseHTTPRequestHandler):
         blocked = max_prob >= BLOCK_THRESHOLD
         
         if blocked:
-            if SHADOW_MODE:
-                METRICS["shadow_blocks"] += 1
-            else:
-                METRICS["blocks"] += 1
+            with METRICS_LOCK:
+                if SHADOW_MODE:
+                    METRICS["shadow_blocks"] += 1
+                else:
+                    METRICS["blocks"] += 1
 
         body = json.dumps({"blocked": blocked, "probability": round(max_prob, 6),
                            "client_id": CLIENT_ID, "shadow_mode": SHADOW_MODE}).encode()
