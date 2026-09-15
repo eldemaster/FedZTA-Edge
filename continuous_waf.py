@@ -29,7 +29,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import fedzta_auth as AUTH
 import fedzta_features as F
 
-CLOUD_URL = os.environ.get("FEDZTA_CLOUD", "http://192.168.1.144:5000")
+CLOUD_URL = os.environ.get("FEDZTA_CLOUD", "http://localhost:5000")
 MODEL_PATH = os.environ.get("FEDZTA_MODEL", "fed_model.json")
 SECRET_PATH = os.environ.get("FEDZTA_SECRET", "gateway_secret.json")
 SYNC_INTERVAL = float(os.environ.get("FEDZTA_SYNC", "15"))
@@ -107,16 +107,6 @@ CLIENT_ID, SECRET = load_secret(SECRET_PATH)
 classifier = ContinuousSGD(*load_local_model())
 
 
-def label_of(payload):
-    """Weak supervision for the continuous-learning loop.
-
-    The model's own confident predictions are used as pseudo-labels. This is an
-    acknowledged limitation, not ground truth -- see the Discussion section.
-    """
-    p = classifier.predict(F.extract(payload))
-    return 1 if p >= 0.9 else (0 if p <= 0.1 else None)
-
-
 class Gateway(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     
@@ -125,13 +115,21 @@ class Gateway(BaseHTTPRequestHandler):
             self._inspect_request(method)
         except Exception as e:
             if FAIL_OPEN:
+                body = b'{"blocked": false, "error": "fail_open"}'
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Connection", "close")
                 self.end_headers()
-                self.wfile.write(b'{"blocked": false, "error": "fail_open"}')
+                self.wfile.write(body)
             else:
+                body = b'{"blocked": true, "error": "fail_closed"}'
                 self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Connection", "close")
                 self.end_headers()
+                self.wfile.write(body)
 
     def _inspect_request(self, method):
         if self.path == '/health':
@@ -154,8 +152,11 @@ class Gateway(BaseHTTPRequestHandler):
         METRICS["requests"] += 1
         parsed = urllib.parse.urlparse(self.path)
         query = urllib.parse.unquote(parsed.query)
-        url_payload = f"{method} {parsed.path}?{query}" if query else f"{method} {parsed.path}"
-        contexts = [url_payload]
+        contexts = []
+        if parsed.path:
+            contexts.append(parsed.path)
+        if query:
+            contexts.append(query)
         
         # Extract headers
         for h in ['User-Agent', 'Referer', 'Cookie']:

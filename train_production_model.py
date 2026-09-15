@@ -68,7 +68,7 @@ def split_pool(pool, rng, frac=0.7):
 
 
 def draw(pool, n, label, rng):
-    return [(f"GET /search?q={pool[i]}", label) for i in rng.integers(0, len(pool), n)]
+    return [(pool[i], label) for i in rng.integers(0, len(pool), n)]
 
 
 def build(t):

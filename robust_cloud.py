@@ -19,8 +19,6 @@ import os
 import statistics
 import threading
 import time
-import time
-import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import fedzta_auth as AUTH
@@ -236,4 +234,4 @@ if __name__ == "__main__":
           flush=True)
     print("[!] Coordinate-wise median requires K >= 2f+1; /weights reports the "
           "tolerance actually achieved", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", 5000), Aggregator).serve_forever()
+    ThreadingHTTPServer(("0.0.0.0", int(os.environ.get("FEDZTA_PORT", 5000))), Aggregator).serve_forever()

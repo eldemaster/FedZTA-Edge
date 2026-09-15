@@ -12,7 +12,8 @@ import urllib.request
 
 import fedzta_auth as AUTH
 
-CLOUD = "http://192.168.1.144:5000"
+import os
+CLOUD = os.environ.get("FEDZTA_CLOUD", "http://localhost:5000")
 
 
 RATE_WINDOW_S = 6
