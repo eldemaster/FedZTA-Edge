@@ -67,19 +67,39 @@ def split_pool(pool, rng, frac=0.7):
     return [u[j] for j in i[:c]], [u[j] for j in i[c:]]
 
 
+UAS = [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+]
+
+PROSE = [
+    "The quick brown fox jumps over the lazy dog. This is a standard test string used to pad out length.",
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    '{"name":"widget","qty":12,"desc":"standard equipment assembly","metadata":{"id":"1234567890","timestamp":"2023-10-27T10:00:00Z"}}'
+]
+
 def draw(pool, n, label, rng):
     samples = []
     for i in rng.integers(0, len(pool), n):
         payload = pool[i]
-        choice = rng.integers(0, 4)
+        choice = rng.integers(0, 7)
         if choice == 0:
             samples.append((payload, label))
         elif choice == 1:
-            samples.append((f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 {payload}", label))
+            samples.append((f"{rng.choice(UAS)} {payload}", label))
         elif choice == 2:
-            samples.append((f"_ga=GA1.2.1234567890; _gid=GA1.2.0987654321; session={payload}", label))
+            samples.append((f"_ga=GA1.2.{rng.integers(100000, 999999)}; _gid=GA1.2.{rng.integers(100000, 999999)}; session={payload}", label))
         elif choice == 3:
-            samples.append((f"https://www.example.com/search?q={payload}", label))
+            samples.append((f"https://{rng.choice(['example.com', 'google.com', 'yahoo.com'])}/search?q={payload}", label))
+        elif choice == 4:
+            samples.append((f'{{"{rng.choice(["data","input","query"])}":"{payload}", "pad":{rng.choice(PROSE)}}}', label))
+        elif choice == 5:
+            samples.append((f"form_data={payload}&submit=true&csrf_token={rng.integers(1000000, 9999999)}", label))
+        elif choice == 6:
+            samples.append((f"{rng.choice(PROSE)} {payload}", label))
     return samples
 
 
