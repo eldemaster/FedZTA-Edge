@@ -68,7 +68,19 @@ def split_pool(pool, rng, frac=0.7):
 
 
 def draw(pool, n, label, rng):
-    return [(pool[i], label) for i in rng.integers(0, len(pool), n)]
+    samples = []
+    for i in rng.integers(0, len(pool), n):
+        payload = pool[i]
+        choice = rng.integers(0, 4)
+        if choice == 0:
+            samples.append((payload, label))
+        elif choice == 1:
+            samples.append((f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 {payload}", label))
+        elif choice == 2:
+            samples.append((f"_ga=GA1.2.1234567890; _gid=GA1.2.0987654321; session={payload}", label))
+        elif choice == 3:
+            samples.append((f"https://www.example.com/search?q={payload}", label))
+    return samples
 
 
 def build(t):

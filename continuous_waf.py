@@ -162,7 +162,12 @@ class Gateway(BaseHTTPRequestHandler):
         for h in ['User-Agent', 'Referer', 'Cookie']:
             val = self.headers.get(h)
             if val:
-                contexts.append(val)
+                if h in ['User-Agent', 'Cookie']:
+                    import re
+                    chunks = re.split(r'[ ;]+', val)
+                    contexts.extend([c for c in chunks if len(c) > 2])
+                else:
+                    contexts.append(val)
                 
         # Read body for POST/PUT up to 8KB
         if method in ['POST', 'PUT']:
