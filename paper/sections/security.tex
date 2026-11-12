@@ -1,7 +1,7 @@
 \section{Security Analysis}
 \label{sec:security}
 
-This section states what the system defends against, measures the poisoning defense, describes the authenticated control plane and the adversarial tests that exercise it, records the fixes made during a code audit, and closes with the limitations that bound every claim above.
+This section states what the system defends against, measures the poisoning defence, describes the authenticated control plane and the adversarial tests that exercise it, records the fixes made during a code audit, and closes with the limitations that bound every claim above.
 
 \subsection{Threat Model}
 \label{sec:sec-threat}
@@ -15,15 +15,15 @@ We consider four adversaries.
   \item[A4, compromised gateway.] Holds a valid enrolled secret and uploads arbitrary parameters. A4 is a Byzantine client; up to $f$ such nodes are assumed.
 \end{description}
 
-The cloud aggregator is trusted for availability and for executing the aggregation rule, but is not given raw payloads. We exclude a compromised aggregator, optimised model-poisoning crafted against the specific aggregation rule~\cite{security:fang2020}, and adaptive input-space evasion of the classifier (Section~\ref{sec:sec-limits}).
+The cloud aggregator is trusted for availability and for executing the aggregation rule, but is not given raw payloads. We exclude a compromised aggregator, optimised model-poisoning crafted against the specific aggregation rule~\cite{fang2020}, and adaptive input-space evasion of the classifier (Section~\ref{sec:sec-limits}).
 
 The layers are deliberately ordered so that each covers a gap the next cannot. Authentication (Section~\ref{sec:sec-auth}) bounds the number of identities, which is what makes $f$ finite. Admission checks reject malformed or grossly scaled updates before aggregation. Robust aggregation (Section~\ref{sec:sec-poison}) then contains the $f$ Byzantine peers that remain. Without the first layer the third is vacuous: an attacker who can mint identities owns the median regardless of its robustness guarantees.
 
-\subsection{Poisoning Defense}
+\subsection{Poisoning Defence}
 \label{sec:sec-poison}
 
 \paragraph{Aggregation rules and their precondition.}
-Coordinate-wise median and $\beta$-trimmed mean~\cite{security:yin2018} (see also Krum~\cite{security:blanchard2017}) are robust only while honest clients outnumber Byzantine ones per coordinate:
+Coordinate-wise median and $\beta$-trimmed mean~\cite{yin2018} (see also Krum~\cite{blanchard2017}) are robust only while honest clients outnumber Byzantine ones per coordinate:
 \begin{equation}
   K \ge 2f + 1 .
   \label{eq:security:byz-bound}
@@ -32,43 +32,18 @@ On the two-gateway testbed this gives $f = 0$: the median of two values is their
 
 The aggregator also keys updates by client identity and keeps only the latest upload per peer, so the median is taken across \emph{peers}. An earlier implementation kept a sliding window of the last ten uploads regardless of origin; that computes a median over time, and a persistently malicious node simply occupies a constant share of the window.
 
-An $L_2$-norm gate sits in front of aggregation. An update whose norm differs from the median norm of the other peers by more than a factor of $4$ (configurable) is rejected with HTTP~409 before it enters the median. With fewer than two other peers the reference falls back to the bootstrap model's norm. The gate is a cheap first filter against scaling; it does not detect sign-flips of ordinary magnitude, which is the median's job.
+An $\ell_2$-norm gate sits in front of aggregation. An update whose norm differs from the median norm of the other peers by more than a factor of $4$ (configurable) is rejected with HTTP~409 before it enters the median. With fewer than two other peers the reference falls back to the bootstrap model's norm. The gate is a cheap first filter against scaling; it does not detect sign-flips of ordinary magnitude, which is the median's job.
 
-\paragraph{Experiment.}
-The poisoning experiment (\texttt{poisoning\_experiment.py}) replaces an earlier figure that was produced from hard-coded arrays with no model behind it; every number reported here comes from actual training and aggregation. We instantiate $K=7$ nodes, each a real SGD logistic-regression classifier over the deployed $D=259$-dimensional $n$-gram feature map, trained on its own shard of SecLists data. Benign traffic alternates between a web-path profile and an API-endpoint profile (the domain-split configuration of Section~\ref{sec:eval}). Train and test payloads are disjoint at the level of unique strings. Training runs for 12 rounds with 20 local epochs per round. From round~4, $f=2$ nodes upload $-12\,w_k$ in place of their honest weights, a sign-flipped and amplified update intended to drive the decision boundary to label everything benign. Each round the \emph{same} set of uploads is aggregated three ways, by arithmetic mean (FedAvg), coordinate-wise median and trimmed mean with $\beta=2$, and each resulting global model is scored by ROC-AUC on a held-out set. The bound~\eqref{eq:security:byz-bound} holds with margin ($7 \ge 5$). Random seed is fixed at 42; this is a single run, not a seed sweep.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/poisoning_defense.pdf}
-  \caption{Measured resilience to model poisoning, $K=7$, $f=2$. From round~4 two nodes upload sign-flipped, $12\times$ amplified weights. Mean aggregation collapses; median and trimmed mean absorb the attack.}
-  \label{fig:security:poisoning}
-\end{figure}
-
-\begin{table}[t]
-  \centering
-  \caption{Global-model ROC-AUC under poisoning (from \texttt{poisoning\_results.json}).}
-  \label{tab:security:poison}
-  \begin{tabular}{lccc}
-    \toprule
-    Aggregator & Round 3 & Round 4 & Round 12 \\
-    \midrule
-    Mean (FedAvg)        & 0.984 & 0.014 & 0.263 \\
-    Coordinate median    & 0.958 & 0.978 & 0.984 \\
-    Trimmed mean ($\beta{=}2$) & 0.979 & 0.983 & 0.986 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\paragraph{Result.}
-Plain averaging falls from 0.984 to 0.014 ROC-AUC in the first poisoned round. A value far below 0.5 means the global model is inverted and ranks attacks as more benign than benign traffic. It then oscillates between 0.03 and 0.73 and ends at 0.263. Median and trimmed mean are unaffected: they end at 0.984 and 0.986, so the median advantage over the mean is $+0.721$ ROC-AUC. Both robust rules continue to improve after the attack begins, because the two poisoned uploads fall in the trimmed tails of every coordinate.
+\paragraph{Empirical result.}
+The simulated experiment (seven nodes, two of them uploading sign-flipped, $12\times$ amplified weights from round~4) is reported in Section~\ref{sec:eval-byzantine}, Fig.~\ref{fig:eval-poison} and Table~\ref{tab:eval-poison}. In short, plain averaging is inverted and ends at 0.263 ROC-AUC, whereas the coordinate-wise median (0.984) and trimmed mean (0.986) are unaffected. The bound~\eqref{eq:security:byz-bound} holds with margin ($7 \ge 5$).
 
 \paragraph{Scope of the claim.}
-This is a plain sign-flip adversary acting simultaneously and at a fixed boost. The experiment is simulated at $K=7$; the physical testbed has two gateways and therefore no Byzantine tolerance (Section~\ref{sec:sec-limits}). We make no claim against attacks optimised for the aggregation rule~\cite{security:fang2020}.
+This is a plain sign-flip adversary acting simultaneously and at a fixed boost. The experiment is simulated at $K=7$ with a single seed; the physical testbed has two gateways and therefore no Byzantine tolerance (Section~\ref{sec:sec-limits}). We make no claim against attacks optimised for the aggregation rule~\cite{fang2020}.
 
 \subsection{Authenticated Control Plane}
 \label{sec:sec-auth}
 
-Each gateway is enrolled with a 256-bit secret from the operating system CSPRNG and signs every update with HMAC-SHA256~\cite{security:rfc2104} over a canonical serialisation (sorted keys, fixed separators). HMAC was chosen over a public-key signature to preserve the zero-dependency, $\sim$10\,MB edge footprint: \texttt{hmac} and \texttt{hashlib} are in the Python standard library. The cost is symmetric keys, so the aggregator holds every secret; see Section~\ref{sec:sec-limits}.
+Each gateway is enrolled with a 256-bit secret from the operating system CSPRNG and signs every update with HMAC-SHA256~\cite{rfc2104} over a canonical serialisation (sorted keys, fixed separators). HMAC was chosen over a public-key signature to preserve the zero-dependency, $\sim$10\,MB edge footprint: \texttt{hmac} and \texttt{hashlib} are in the Python standard library. The cost is symmetric keys, so the aggregator holds every secret; see Section~\ref{sec:sec-limits}.
 
 An update passes the following checks in order, and the first failure rejects it:
 \begin{enumerate}
@@ -127,7 +102,7 @@ The hardening pass addressed the following.
   \item \textbf{Slow-connection exhaustion.} Servers use \texttt{ThreadingHTTPServer} with a 5\,s per-connection timeout, so a Slowloris-style client holding sockets open cannot block legitimate traffic or exhaust the single-threaded loop.
   \item \textbf{Race conditions.} Gateway request/block counters and the aggregator's rejection counters are now updated under locks, since threaded serving made unsynchronised increments lossy.
   \item \textbf{Atomic model publication.} Global model snapshots are written to a temporary file, flushed and \texttt{fsync}ed, then moved into place with \texttt{os.replace}, so a gateway syncing mid-write never reads a truncated model.
-  \item \textbf{Block threshold.} Training-time data augmentation (JSON, form data, varied lengths, prose) shifted the model's intercept; the gateway's block threshold was lowered from 0.5 to 0.15 to compensate. This is an operating-point change, not a security fix, and the trade-off between false positives and recall at that threshold is evaluated in Section~\ref{sec:eval}.
+  \item \textbf{Block threshold.} Training-time data augmentation (JSON, form data, varied lengths, prose) shifted the model's intercept; the gateway's block threshold was lowered from 0.5 to 0.15 to compensate. This is an operating-point change, not a security fix, and the trade-off between false positives and recall at that threshold is not quantified (Section~\ref{sec:eval-limits}).
 \end{itemize}
 
 \subsection{Limitations and Discussion}
@@ -137,13 +112,13 @@ The hardening pass addressed the following.
 The physical cluster has two gateways, so by~\eqref{eq:security:byz-bound} its tolerance is $f=0$. The poisoning results come from a seven-node simulation, not hardware. The norm gate and authentication still apply at $K=2$, but neither can stop a compromised gateway that uploads plausible-norm, adversarially chosen weights.
 
 \paragraph{Adaptive attacks.}
-Sign-flip poisoning is the simplest attack. Optimised attacks aware of the aggregation rule can defeat median-based defences~\cite{security:fang2020}, and we did not evaluate them. Likewise the classifier is a linear model over syntactic features and is evadable in principle by padding, entropy shaping or steering trigrams toward lightly weighted buckets; no adaptive input-space evaluation was done. The resilience shown concerns model poisoning, not evasion.
+Sign-flip poisoning is the simplest attack. Optimised attacks aware of the aggregation rule can defeat median-based defences~\cite{fang2020}, and we did not evaluate them. Likewise the classifier is a linear model over hashed $n$-gram and syntactic features and is evadable in principle by padding, entropy shaping or steering trigrams toward lightly weighted buckets; no adaptive input-space evaluation was done. The resilience shown concerns model poisoning, not evasion.
 
 \paragraph{Authentication.}
 Symmetric HMAC keys mean a breach of the aggregator exposes every peer secret, and the scheme provides authenticity and freshness but not non-repudiation. Replay and rate-limit state is held in aggregator memory. Enrolment is a manual provisioning step, which is what bounds $f$ but is also an operational burden. The timestamp window assumes loosely synchronised clocks.
 
 \paragraph{Confidentiality.}
-HMAC authenticates updates; it does not encrypt them. ML-KEM-512~\cite{security:fips203} is benchmarked as a component and a post-quantum aggregator variant exists in the repository, but the live weight channel is still JSON over plain HTTP on a trusted network segment, so A2's ``store now, decrypt later'' capability is not yet neutralised. Differential privacy is specified but not implemented, so we report no $\epsilon$ and no measurement of gradient inversion.
+HMAC authenticates updates; it does not encrypt them. ML-KEM-512~\cite{fips203} is benchmarked as a component and a post-quantum aggregator variant exists in the repository, but the live weight channel is still JSON over plain HTTP on a trusted network segment, so A2's ``store now, decrypt later'' capability is not yet neutralised. Differential privacy is specified but not implemented, so we report no $\epsilon$ and no measurement of gradient inversion.
 
 \paragraph{Statistical scope.}
 The poisoning experiment is one seeded run with a single attack strength and timing. The attack tests assert designed status codes and were not run as a statistical study.

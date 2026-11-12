@@ -10,7 +10,7 @@ We evaluate FedZTA-Edge along five questions. (i)~Does federation improve detect
 The cloud aggregator is an x86\_64 Ubuntu server (14 cores, 31\,GB RAM) running the aggregation service and all offline training studies. Two edge gateways are Raspberry~Pi~4 boards (aarch64 Cortex-A72, 4\,GB RAM), each running the pure-Python threaded gateway (\texttt{continuous\_waf.py}) on port~8080 with a 15\,s synchronisation interval. Gateways identify themselves with a stable client identifier so the aggregator can key updates by peer.
 
 \paragraph{Data.}
-All payloads come from the public SecLists corpus~\cite{evaluation:seclists}; no payload is synthesised. Attacks are SQL injection (SQLi, 17 lists) and cross-site scripting (XSS, 7 lists). Benign traffic has two profiles: ``web'' (path words, \texttt{raft-small-words}) and ``API'' (\texttt{api-seen-in-wild}, \texttt{api-endpoints}, \texttt{graphql}). Table~\ref{tab:eval-corpora} lists the deduplicated corpora.
+All payloads come from the public SecLists corpus~\cite{seclists}; no payload is synthesised. Attacks are SQL injection (SQLi, 17 lists) and cross-site scripting (XSS, 7 lists). Benign traffic has two profiles: ``web'' (path words, \texttt{raft-small-words}) and ``API'' (\texttt{api-seen-in-wild}, \texttt{api-endpoints}, \texttt{graphql}). Table~\ref{tab:eval-corpora} lists the deduplicated corpora.
 
 \begin{table}[t]
 \centering
@@ -35,7 +35,7 @@ Early gateway models learned payload \emph{length} and surrounding context rathe
 Each node trains on 3{,}000 benign and 1{,}000 attack samples (500 SQLi, 500 XSS); the test set has 1{,}500 benign (750 web, 750 API) and 1{,}000 attack samples (500 per class), all drawn from held-out payloads. We study two non-IID axes. In the \emph{attack} axis both nodes share the benign profile but see disjoint attack mixes (the matrix study uses disjoint campaigns). In the \emph{domain} axis both nodes see the full attack mix but different benign profiles: node~A web paths, node~B API endpoints.
 
 \paragraph{Features and training.}
-A request is mapped to a vector in two ways. \emph{Syntactic} features are three scalars (length, count of non-alphanumeric characters, Shannon entropy), each scaled by a fixed a-priori constant. \emph{$n$-gram} features are $L_2$-normalised hashed character 3-gram counts in $D$ buckets (polynomial rolling hash) followed by the three syntactic scalars, giving dimension $D+3$. The classifier is logistic regression trained by SGD (\texttt{loss=log\_loss}, $L_2$ penalty $\alpha=10^{-4}$, constant $\eta_0=0.01$). Federated training runs $R=20$ rounds of $E=30$ local epochs, with sample-weighted averaging; isolated baselines train for $R\cdot E$ epochs on their own data. Results are averaged over eight seeds (42--49), each with a fresh payload split; we report mean $\pm$ standard deviation.
+A request is mapped to a vector in two ways. \emph{Syntactic} features are three scalars (length, count of non-alphanumeric characters, Shannon entropy), each scaled by a fixed a-priori constant. \emph{$n$-gram} features are $\ell_2$-normalised hashed character 3-gram counts in $D$ buckets (polynomial rolling hash) followed by the three syntactic scalars, giving dimension $D+3$. The classifier is logistic regression trained by SGD (\texttt{loss=log\_loss}, $\ell_2$ penalty $\alpha=10^{-4}$, constant $\eta_0=0.01$). Federated training runs $R=20$ rounds of $E=30$ local epochs, with sample-weighted averaging; isolated baselines train for $R\cdot E$ epochs on their own data. Results are averaged over eight seeds (42--49), each with a fresh payload split; we report mean $\pm$ standard deviation.
 
 \paragraph{Metrics.}
 We report ROC-AUC and PR-AUC; recall on each attack class at a matched 0.1\% false-positive budget on the pooled benign test set (so models at different operating points are comparable); and the false-positive rate on each benign domain at the default decision threshold (probability~0.5). The ``FPR'' columns therefore describe the default threshold, \emph{not} the gateway's deployed threshold of 0.15.
@@ -50,13 +50,13 @@ Table~\ref{tab:eval-matrix} gives the full feature $\times$ axis matrix.
 
 \begin{table*}[t]
 \centering
-\caption{Design-space matrix (\texttt{matrix\_results.json}; mean over eight seeds; std.\ of ROC-AUC in parentheses). Recall columns are at 0.1\% pooled FPR. FPR-API is the default-threshold false-positive rate on API traffic. Bold marks the best ROC-AUC per cell (ties not marked).}
+\caption{Design-space matrix (\texttt{matrix\_results.json}; mean over eight seeds; std.\ of ROC-AUC in parentheses). Recall columns are at 0.1\% pooled FPR. FPR-API is the default-threshold false-positive rate on API traffic. Bold marks the best ROC-AUC in each feature/axis group; differences under 0.0005 are treated as ties and both are marked.}
 \label{tab:eval-matrix}
-\begin{tabular}{@{}llrrrrr@{}}
+\begin{tabular}{@{}llrrrr@{}}
 \toprule
 \textbf{Features} & \textbf{Axis / model} & \textbf{ROC-AUC} & \textbf{XSS} & \textbf{SQLi} & \textbf{FPR-API} \\ \midrule
 \multirow{6}{*}{Syntactic (3)}
- & attack: Edge A & 0.9723 (0.0055) & 0.894 & 0.680 & 0.0140 \\
+ & attack: Edge A & 0.9723 (0.0055) & 0.894 & 0.679 & 0.0140 \\
  & attack: Edge B & \textbf{0.9891} (0.0034) & 0.922 & 0.777 & 0.0123 \\
  & attack: Federated & 0.9788 (0.0050) & 0.903 & 0.737 & 0.0080 \\
  & domain: Edge A & 0.9803 (0.0054) & 0.902 & 0.736 & 0.0085 \\
@@ -65,14 +65,14 @@ Table~\ref{tab:eval-matrix} gives the full feature $\times$ axis matrix.
 \multirow{6}{*}{$n$-gram, $D{=}64$ (67)}
  & attack: Edge A & 0.9532 (0.0056) & 0.904 & 0.581 & 0.0135 \\
  & attack: Edge B & \textbf{0.9895} (0.0031) & 0.913 & 0.805 & 0.0098 \\
- & attack: Federated & 0.9826 (0.0044) & 0.927 & 0.765 & 0.0053 \\
+ & attack: Federated & 0.9826 (0.0044) & 0.927 & 0.764 & 0.0053 \\
  & domain: Edge A & 0.9839 (0.0043) & 0.915 & 0.768 & 0.0102 \\
- & domain: Edge B & 0.9916 (0.0035) & 0.954 & 0.850 & 0.0013 \\
- & domain: Federated & 0.9918 (0.0032) & 0.952 & 0.833 & 0.0010 \\ \bottomrule
+ & domain: Edge B & \textbf{0.9916} (0.0035) & 0.954 & 0.850 & 0.0013 \\
+ & domain: Federated & \textbf{0.9918} (0.0032) & 0.952 & 0.833 & 0.0010 \\ \bottomrule
 \end{tabular}
 \end{table*}
 
-The pattern is consistent, and less flattering than a federation advocate would like. On the attack axis, each silo is blind to the other's attack class, and federation recovers most of the gap for the weaker node. With $n$-gram features Edge~A's SQLi recall rises from 0.581 (isolated) to 0.765 (federated). The federated model remains below the stronger silo (Edge~B, 0.805), which is the behaviour expected of FedAvg when local optima diverge~\cite{evaluation:li2020convergence}: the average lies between the two, not above. On the domain axis the federated model is statistically indistinguishable from the better silo in ROC-AUC (0.9918 vs.\ 0.9916 with $n$-grams; the standard deviation across seeds is 0.003) and is below it on SQLi recall (0.833 vs.\ 0.850). Its benefit is that it is as good as the \emph{best} silo on \emph{both} benign domains without knowing in advance which silo that is: Edge~A alone has a 1.0\% default-threshold FPR on API traffic, which federation reduces to 0.10\% with $n$-grams. In short, federation reliably lifts the weaker node and lowers cross-domain false positives. It does not, in these experiments, reliably beat the best isolated model.
+The pattern is consistent, and less flattering than a federation advocate would like. On the attack axis, each silo is blind to the other's attack class, and federation recovers most of the gap for the weaker node. With $n$-gram features Edge~A's SQLi recall rises from 0.581 (isolated) to 0.764 (federated). The federated model remains below the stronger silo (Edge~B, 0.805), which is the behaviour expected of FedAvg when local optima diverge~\cite{li2020convergence}: the average lies between the two, not above. On the domain axis the federated model is statistically indistinguishable from the better silo in ROC-AUC (0.9918 vs.\ 0.9916 with $n$-grams; the standard deviation across seeds is 0.003) and is below it on SQLi recall (0.833 vs.\ 0.850). Its benefit is that it is as good as the \emph{best} silo on \emph{both} benign domains without knowing in advance which silo that is: Edge~A alone has a 1.0\% default-threshold FPR on API traffic, which federation reduces to 0.10\% with $n$-grams. In short, federation reliably lifts the weaker node and lowers cross-domain false positives. It does not, in these experiments, reliably beat the best isolated model.
 
 \subsection{Shipped Model Accuracy}
 \label{sec:eval-detection}
@@ -127,7 +127,20 @@ We instantiate $K=7$ nodes on the domain-split $n$-gram configuration ($\dim=259
 \label{fig:eval-poison}
 \end{figure}
 
-Plain averaging falls from 0.9841 ROC-AUC (round~3) to 0.0137 in the first poisoned round, i.e.\ the global model is inverted, and it ends at 0.263. Median ends at 0.9838 and trimmed mean at 0.9864. This is a single seed and a naive sign-flip adversary. Optimised attacks that know the aggregation rule can defeat median-style defences~\cite{evaluation:fang2020}, and we claim no resistance to them. The experiment also assumes updates are authenticated (the gateways sign updates), since an unauthenticated aggregator has unbounded $f$.
+\begin{table}[t]
+\centering
+\caption{Global-model ROC-AUC under poisoning (\texttt{poisoning\_results.json}); the attack starts in round~4.}
+\label{tab:eval-poison}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Aggregator} & \textbf{Round 3} & \textbf{Round 4} & \textbf{Round 12} \\ \midrule
+Mean (FedAvg) & 0.984 & 0.014 & 0.263 \\
+Coordinate median & 0.958 & 0.978 & 0.984 \\
+Trimmed mean ($\beta{=}2$) & 0.979 & 0.983 & 0.986 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+Plain averaging falls from 0.9841 ROC-AUC (round~3) to 0.0137 in the first poisoned round, i.e.\ the global model is inverted, then oscillates between 0.03 and 0.73 and ends at 0.263 (Table~\ref{tab:eval-poison}). Both robust rules keep improving after the attack begins, because the two poisoned uploads fall in the trimmed tails of every coordinate. Median ends at 0.9838 and trimmed mean at 0.9864. This is a single seed and a naive sign-flip adversary. Optimised attacks that know the aggregation rule can defeat median-style defences~\cite{fang2020}, and we claim no resistance to them. The experiment also assumes updates are authenticated (the gateways sign updates), since an unauthenticated aggregator has unbounded $f$.
 
 \subsection{Edge Cost on ARM}
 \label{sec:eval-hardware}

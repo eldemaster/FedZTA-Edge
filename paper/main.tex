@@ -4,7 +4,7 @@
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithm}
-\usepackage{algorithmic}
+\usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{multirow}
@@ -15,9 +15,7 @@
 \usepackage[hidelinks]{hyperref}
 \graphicspath{{figures/}}
 
-% Include a section file only if it exists, so the paper builds while
-% other sections are still being written.
-\newcommand{\optinput}[1]{\IfFileExists{#1.tex}{\input{#1}}{\typeout{WARNING: #1.tex missing}}}
+\emergencystretch=2em
 
 \begin{document}
 
@@ -32,24 +30,24 @@ email@example.org}
 \maketitle
 
 \begin{abstract}
-The proliferation of the Industrial Internet of Things has dissolved traditional network perimeters, and Zero-Trust Architectures (ZTA) respond by demanding continuous verification of every request. At the industrial edge, however, Web Application Firewalls still rely on static signature sets that cannot generalise to unseen payloads, while the obvious remedy---shipping raw HTTP logs to a central model---violates the data sovereignty requirements of Industrial Data Spaces. We present a Federated Learning (FL) architecture for adaptive Zero-Trust edge gateways in which each gateway trains a lightweight linear classifier over hashed character $n$-grams of its own traffic and exchanges only model parameters with a cloud aggregator. Train and test sets are disjoint at the level of unique attack payloads. We find that the benefit of federation depends on how heterogeneity is distributed: when nodes differ in their benign traffic profile while facing a shared threat landscape, federation matches the strongest isolated silo within run-to-run variance without ever sharing raw data, and its main value is cross-domain generalisation for the weakest silo. Coordinate-wise median aggregation preserves detection quality when two of seven nodes upload sign-flipped weights, a setting in which plain federated averaging collapses. The control plane is hardened with signed, nonce-protected, rate-limited updates from enrolled gateways, and the weight channel is protected with ML-KEM post-quantum key encapsulation. On a Raspberry Pi~4, the pure-Python inferencer runs in a few hundred microseconds per request within a roughly 10\,MB footprint, and each synchronisation transfers a fixed number of bytes irrespective of inspected traffic volume, cutting cloud bandwidth by more than 99\%. Detailed measurements are reported in Section~\ref{sec:evaluation}.
+The proliferation of the Industrial Internet of Things has dissolved traditional network perimeters, and Zero-Trust Architectures (ZTA) respond by demanding continuous verification of every request. At the industrial edge, however, Web Application Firewalls still rely on static signature sets that cannot generalise to unseen payloads, while the obvious remedy---shipping raw HTTP logs to a central model---violates the data sovereignty requirements of Industrial Data Spaces. We present a Federated Learning (FL) architecture for adaptive Zero-Trust edge gateways in which each gateway trains a lightweight linear classifier over hashed character $n$-grams of its own traffic and exchanges only model parameters with a cloud aggregator. Train and test sets are disjoint at the level of unique attack payloads. We find that the benefit of federation depends on how heterogeneity is distributed: when nodes differ in their benign traffic profile while facing a shared threat landscape, federation matches the strongest isolated silo within run-to-run variance without ever sharing raw data, and its main value is cross-domain generalisation for the weakest silo. Coordinate-wise median aggregation preserves detection quality when two of seven nodes upload sign-flipped weights, a setting in which plain federated averaging collapses. The control plane is hardened with signed, nonce-protected, rate-limited updates from enrolled gateways, and the weight channel is designed around ML-KEM post-quantum key encapsulation, which we benchmark as a component but have not yet wired into the live update path. On a Raspberry Pi~4, the pure-Python inferencer runs in a few hundred microseconds per request within a roughly 10\,MB footprint, and each synchronisation transfers a fixed 1{,}040 bytes irrespective of inspected traffic volume, cutting cloud-bound bandwidth by up to 99.9\% at the measured throughput with a five-minute synchronisation interval (98.9\% at the deployed 15\,s interval). Detailed measurements are reported in Section~\ref{sec:evaluation}.
 \end{abstract}
 
 \begin{IEEEkeywords}
 Federated Learning, Zero-Trust, Edge Computing, Industrial IoT, Byzantine Robustness, Post-Quantum Cryptography, Data Sovereignty
 \end{IEEEkeywords}
 
-\optinput{sections/intro}
-\optinput{sections/background}
-\optinput{sections/system}
-\optinput{sections/evaluation}
-\optinput{sections/security}
+\input{sections/intro}
+\input{sections/background}
+\input{sections/system}
+\input{sections/evaluation}
+\input{sections/security}
 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
 \subsection{Conclusion}
-We presented a federated~\cite{mcmahan2017} Zero-Trust gateway architecture for Industrial IoT and evaluated it under conditions strict enough to be informative: disjoint unique-payload splits and comparison at a matched false-positive budget. Under these conditions the common claim that federation dramatically improves zero-day detection does not hold in general. When nodes differ in their benign traffic profile while sharing a threat landscape, federation matches the strongest isolated silo within run-to-run variance and gives the most balanced cross-domain profile, with privacy preserved at no measurable accuracy cost. Coordinate-wise median aggregation tolerates sign-flipping Byzantine nodes where plain averaging fails, and the resulting gateway, with a post-quantum protected and authenticated weight channel, runs on commodity industrial edge hardware.
+We presented a federated~\cite{mcmahan2017} Zero-Trust gateway architecture for Industrial IoT and evaluated it under conditions strict enough to be informative: disjoint unique-payload splits and comparison at a matched false-positive budget. Under these conditions the common claim that federation dramatically improves zero-day detection does not hold in general. When nodes differ in their benign traffic profile while sharing a threat landscape, federation matches the strongest isolated silo within run-to-run variance and gives the most balanced cross-domain profile, with privacy preserved at no measurable accuracy cost. Coordinate-wise median aggregation tolerates sign-flipping Byzantine nodes where plain averaging fails, and the resulting gateway, with an authenticated weight channel and a benchmarked ML-KEM key exchange that is not yet integrated into the live path, runs on commodity industrial edge hardware.
 
 \subsection{Deployment Status}
 Hardening followed a tiered roadmap derived from an adversarial review of the prototype.
@@ -64,12 +62,13 @@ Remaining items are:
 (iii)~\emph{Formal privacy}: differentially private aggregation, quantifying $(\epsilon,\delta)$ against detection loss.
 (iv)~\emph{Adaptive adversaries}: optimised model poisoning against the median rule and input-space evasion against the $n$-gram map.
 (v)~\emph{Physical scale-out}: reproducing the Byzantine results on hardware beyond $K=2f+1$ gateways.
-(vi)~\emph{Isolation and adaptivity}: WebAssembly sandboxing of the inferencer against model extraction, and human-in-the-loop active learning to restore online adaptability without reintroducing drift.
+(vi)~\emph{Post-quantum integration}: wiring the ML-KEM-derived key into authenticated encryption of the live \texttt{/update} and \texttt{/weights} path.
+(vii)~\emph{Isolation and adaptivity}: WebAssembly sandboxing of the inferencer against model extraction, and human-in-the-loop active learning to restore online adaptability without reintroducing drift.
 
 \section*{Data and Code Availability}
 The dataset manifests, federated simulation, Byzantine poisoning experiment, pure-Python edge inferencer and testbed instructions are available at \url{https://github.com/eldemaster/FedZTA-Edge}.
 
 \bibliographystyle{IEEEtran}
-\bibliography{refs,refs_intro,refs_background,refs_system,refs_evaluation,refs_security}
+\bibliography{refs}
 
 \end{document}
