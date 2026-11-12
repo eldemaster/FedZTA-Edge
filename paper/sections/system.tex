@@ -29,14 +29,14 @@ Training and inference operate on different units. In training, each sampled str
 Two aggregation procedures appear in this paper and they are not interchangeable. \emph{Offline federated averaging} produced the shipped model and all accuracy results; \emph{online coordinate-wise median} runs in the deployed aggregator and is the subject of the poisoning study.
 
 \paragraph{Offline FedAvg.}
-Training follows federated averaging~\cite{mcmahan2017} over two simulated gateways (\texttt{fl\_simulation\_v4.py}, \texttt{train\_production\_model.py}). Each node holds an \texttt{SGDClassifier} with logistic loss, $\ell_2$ penalty $\alpha=10^{-4}$ and constant learning rate $\eta_0=0.01$. In each of $20$ rounds every node starts from the global parameters, trains for $30$ local epochs on its own data, and the server forms the sample-weighted average
+Training follows federated averaging~\cite{mcmahan2017} over two simulated gateways (\texttt{fl\_simulation\_v4.py}, \texttt{train\_production\_model.py}). Each node holds an \texttt{SGDClassifier} with logistic loss, $\ell_2$ penalty $\alpha=10^{-4}$ and constant learning rate $\eta_0=0.01$. In each of $R=20$ rounds every node starts from the global parameters, trains for $E=30$ local epochs on its own data, and the server forms the sample-weighted average
 \begin{equation}
 \theta^{(t+1)} = \sum_k \tfrac{n_k}{n}\,\theta_k^{(t)}, \qquad n=\sum_k n_k .
 \end{equation}
-Train and test sets are disjoint at the level of unique payloads. The two nodes differ by benign profile (public web versus API), the configuration selected in Section~\ref{sec:evaluation}.
+Train and test sets are disjoint at the level of unique payloads. The two nodes differ by benign profile (public web versus API), the configuration chosen from the controlled matrix of Section~\ref{sec:eval-matrix} because it was the only cell in which federation exceeded both silos, a selection made on test results.
 
 \paragraph{Online median.}
-The deployed aggregator (\texttt{robust\_cloud.py}) keeps the latest update of each enrolled client and recomputes the global model on every accepted update. With $K$ stored updates the default rule is the coordinate-wise median~\cite{yin2018},
+The deployed aggregator (\texttt{robust\_cloud.py}) keeps the latest update of each enrolled client and recomputes the global model on every accepted update (Algorithm~\ref{alg:aggregator}). With $K$ stored updates the default rule is the coordinate-wise median~\cite{yin2018},
 \begin{equation}
 w_j = \operatorname{median}\{w_{k,j}\}_{k=1}^{K}, \qquad b = \operatorname{median}\{b_k\}_{k=1}^{K},
 \end{equation}
@@ -54,7 +54,7 @@ The live transport is plain HTTP carrying HMAC-authenticated JSON: \texttt{/upda
 
 \subsection{Gateway}
 \label{sec:sys-waf}
-The gateway (\texttt{continuous\_waf.py}) is a multi-threaded HTTP server. For each GET, POST or PUT request it builds $\mathcal{C}(r)$: the URL path, the percent-decoded query string, the \texttt{User-Agent}, \texttt{Referer} and \texttt{Cookie} header values, and for POST and PUT the body truncated to $8$\,KB. The request score is the maximum context score,
+The gateway (\texttt{continuous\_waf.py}, Algorithm~\ref{alg:gateway}) is a multi-threaded HTTP server. For each GET, POST or PUT request it builds $\mathcal{C}(r)$: the URL path, the percent-decoded query string, the \texttt{User-Agent}, \texttt{Referer} and \texttt{Cookie} header values, and for POST and PUT the body truncated to $8$\,KB. The request score is the maximum context score,
 \begin{equation}
 s(r) = \max_{P\in\mathcal{C}(r)} p\big(\mathbf{x}(P)\big),
 \end{equation}
@@ -71,8 +71,6 @@ Every $15$\,s the gateway uploads a MAC-tagged snapshot (weights, bias, sample c
 
 \subsection{Procedures}
 \label{sec:sys-alg}
-Algorithm~\ref{alg:gateway} gives edge inspection and synchronisation; Algorithm~\ref{alg:aggregator} gives update handling in the cloud.
-
 \begin{algorithm}[t]
 \caption{Edge gateway: inspection and synchronisation}
 \label{alg:gateway}
@@ -118,7 +116,7 @@ Algorithm~\ref{alg:gateway} gives edge inspection and synchronisation; Algorithm
 
 \subsection{Implementation Status}
 \label{sec:sys-status}
-Table~\ref{tab:sys-status} records what the repository implements and what it does not, so that later sections can be read against it. Each row corresponds to a code path; none of the rows marked ``not implemented'' is assumed anywhere in the evaluation.
+Table~\ref{tab:sys-status} records what the repository implements and what it does not, so that later sections can be read against it. Each row corresponds to a code path; no feature that a row lists as absent or off the live path is assumed anywhere in the evaluation.
 
 \begin{table}[t]
 \centering
@@ -140,4 +138,4 @@ Requester identity & Not checked; the gateway scores payloads only \\
 \end{tabular}
 \end{table}
 
-Per-update size is fixed by the model dimension: $260$ values, $1{,}040$ bytes, independent of the number of inspected requests. The experiments that exercise this system, and the objects they train and score, are described in Section~\ref{sec:evaluation}.
+Per-update size is fixed by the model dimension: $260$ values, $1{,}040$ bytes, independent of the number of inspected requests.
