@@ -19,22 +19,23 @@
 
 \begin{document}
 
-\title{Collaborative Defense in Industrial Data Spaces: A Quantum-Resistant Federated Learning Approach for Zero-Trust Edge Gateways}
+\title{When Does Federation Help an Edge Payload Classifier? A Measurement Study with an Authenticated Robust Aggregator}
 
-\author{\IEEEauthorblockN{Author Name(s) --- placeholder}
-\IEEEauthorblockA{\textit{Affiliation --- placeholder} \\
-City, Country \\
-email@example.org}
+\author{\IEEEauthorblockN{Alessandro De Martini}
+\IEEEauthorblockA{\textit{Department of Information Systems and Technology} \\
+\textit{Mid Sweden University (MIUN)}\\
+Sundsvall, Sweden \\
+alessandro.demartini@miun.se}
 }
 
 \maketitle
 
 \begin{abstract}
-The proliferation of the Industrial Internet of Things has dissolved traditional network perimeters, and Zero-Trust Architectures (ZTA) respond by demanding continuous verification of every request. At the industrial edge, however, Web Application Firewalls still rely on static signature sets that cannot generalise to unseen payloads, while the obvious remedy---shipping raw HTTP logs to a central model---violates the data sovereignty requirements of Industrial Data Spaces. We present a Federated Learning (FL) architecture for adaptive Zero-Trust edge gateways in which each gateway trains a lightweight linear classifier over hashed character $n$-grams of its own traffic and exchanges only model parameters with a cloud aggregator. Train and test sets are disjoint at the level of unique attack payloads. We find that the benefit of federation depends on how heterogeneity is distributed: when nodes differ in their benign traffic profile while facing a shared threat landscape, federation matches the strongest isolated silo within run-to-run variance without ever sharing raw data, and its main value is cross-domain generalisation for the weakest silo. Coordinate-wise median aggregation preserves detection quality when two of seven nodes upload sign-flipped weights, a setting in which plain federated averaging collapses. The control plane is hardened with signed, nonce-protected, rate-limited updates from enrolled gateways, and the weight channel is designed around ML-KEM post-quantum key encapsulation, which we benchmark as a component but have not yet wired into the live update path. On a Raspberry Pi~4, the pure-Python inferencer runs in a few hundred microseconds per request within a roughly 10\,MB footprint, and each synchronisation transfers a fixed 1{,}040 bytes irrespective of inspected traffic volume, cutting cloud-bound bandwidth by up to 99.9\% at the measured throughput with a five-minute synchronisation interval (98.9\% at the deployed 15\,s interval). Detailed measurements are reported in Section~\ref{sec:evaluation}.
+Industrial gateways inspect HTTP requests from sites whose benign traffic differs, while data-governance rules may keep those requests on site. We ask when federating a lightweight payload classifier, a logistic regression over hashed character trigrams, across such sites helps, and at what cost and security limit. Train and test sets are disjoint at the level of unique payloads. When two sites differ in benign profile and face the same attacks, the federated model matches the best isolated model within seed variation (ROC-AUC 0.9947 vs.\ 0.9938 over eight seeds, standard deviation 0.002--0.004) and outperforms the silo with the wrong benign profile (0.9859); it does not exceed the best silo on SQL-injection recall. When sites differ in attack mix, federation lifts the weaker silo but stays below the stronger one. The evidence for deployment is adverse: on the CSIC~2010 corpus the gateway's maximum-over-contexts rule flags every one of 72{,}000 normal requests, because the model scores the constant \texttt{User-Agent} header above threshold, and scoring payload contexts only still flags 19\% at the deployed threshold. We also describe a prototype aggregator that authenticates updates with HMAC-SHA256 and applies a coordinate-wise median. In a simulation with 2 of 7 clients uploading sign-flipped weights, the median keeps ROC-AUC at 0.984 where plain averaging ends at 0.263. The live update channel is plain HTTP; ML-KEM-512 was benchmarked as a component and is not integrated. A fixed 1{,}040-byte update cuts cloud-bound traffic by 98.88\% at the deployed 15\,s synchronisation interval and 452 requests per second.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Federated Learning, Zero-Trust, Edge Computing, Industrial IoT, Byzantine Robustness, Post-Quantum Cryptography, Data Sovereignty
+Federated Learning, Web Application Firewall, Non-IID Data, Byzantine-Robust Aggregation, Edge Computing, Industrial IoT
 \end{IEEEkeywords}
 
 \input{sections/intro}
@@ -46,24 +47,12 @@ Federated Learning, Zero-Trust, Edge Computing, Industrial IoT, Byzantine Robust
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-\subsection{Conclusion}
-We presented a federated~\cite{mcmahan2017} Zero-Trust gateway architecture for Industrial IoT and evaluated it under conditions strict enough to be informative: disjoint unique-payload splits and comparison at a matched false-positive budget. Under these conditions the common claim that federation dramatically improves zero-day detection does not hold in general. When nodes differ in their benign traffic profile while sharing a threat landscape, federation matches the strongest isolated silo within run-to-run variance and gives the most balanced cross-domain profile, with privacy preserved at no measurable accuracy cost. Coordinate-wise median aggregation tolerates sign-flipping Byzantine nodes where plain averaging fails, and the resulting gateway, with an authenticated weight channel and a benchmarked ML-KEM key exchange that is not yet integrated into the live path, runs on commodity industrial edge hardware.
+Federating a hashed-trigram payload classifier pays off when sites differ in benign traffic: the aggregate model matches the best silo within seed variation, protects the silo whose benign profile is wrong for the test traffic, and does not need to know in advance which silo that is. It does not raise the ceiling set by the best local model, and when sites differ in attack mix it lands between the silos. The cost side is small for the model (a fixed 1{,}040-byte update) and large for deployment: on CSIC~2010 the gateway rule flags all normal requests, so these results say nothing yet about false-positive behaviour on production traffic. The prototype authenticates updates and tolerates two of seven sign-flipping clients under a bare median, but the live channel is unencrypted and the two-gateway deployment has no Byzantine tolerance.
 
-\subsection{Deployment Status}
-Hardening followed a tiered roadmap derived from an adversarial review of the prototype.
-\emph{Threat visibility}: the edge inferencer now handles \texttt{GET}, \texttt{POST} and \texttt{PUT}, inspects critical headers (\texttt{User-Agent}, \texttt{Referer}, \texttt{Cookie}) and request bodies up to an 8\,KB cap, and scores each context (URL, header, body) independently to avoid statistical dilution.
-\emph{Control-plane authentication}: the cloud aggregator requires HMAC-SHA256-signed updates with timestamps and single-use nonces, checks an enrolment allowlist, rate-limits per identity (nonce consumed before the rate check), and rejects dimensional and norm outliers before median aggregation, closing the Sybil exposure of an unauthenticated update endpoint.
-\emph{Operations}: classifier weights persist atomically across restarts, global models are versioned for instant rollback, a shadow (monitor-only) mode measures real-world false-positive rate before blocking is enforced, and an explicit fail-open/fail-closed policy governs gateway failures. The pseudo-label feedback loop was replaced by replay of a frozen anchor set to prevent drift.
+The experiments that would change these conclusions are, in order of priority: scoring each request context with a threshold calibrated on captured benign traffic from the target site, which addresses the CSIC failure directly; repeating the heterogeneity study with more than two clients and a larger SQL-injection corpus, since 681 unique strings make recall at a 0.1\% false-positive budget unstable across seeds; testing optimised poisoning and evasion aimed at the median rule and the trigram map; and wiring the ML-KEM-derived key into authenticated encryption of the update channel so that its cost can be measured end to end rather than as a component.
 
-\subsection{Future Work}
-Remaining items are:
-(i)~\emph{Data expansion}: SQL-injection recall is limited by the small number of unique payloads, so integrating further public corpora (CTF collections, fuzzing lists, Payloadbox) is the binding next step.
-(ii)~\emph{Non-linear models}: replacing logistic regression with a lightweight gradient-boosted tree ensemble or a two-layer MLP over the same feature vector, while keeping millisecond latency and fixed-size parameters.
-(iii)~\emph{Formal privacy}: differentially private aggregation, quantifying $(\epsilon,\delta)$ against detection loss.
-(iv)~\emph{Adaptive adversaries}: optimised model poisoning against the median rule and input-space evasion against the $n$-gram map.
-(v)~\emph{Physical scale-out}: reproducing the Byzantine results on hardware beyond $K=2f+1$ gateways.
-(vi)~\emph{Post-quantum integration}: wiring the ML-KEM-derived key into authenticated encryption of the live \texttt{/update} and \texttt{/weights} path.
-(vii)~\emph{Isolation and adaptivity}: WebAssembly sandboxing of the inferencer against model extraction, and human-in-the-loop active learning to restore online adaptability without reintroducing drift.
+\section*{Acknowledgment}
+This work was partially supported by the Swedish Knowledge Foundation (KK-stiftelsen) and the Mid Sweden University Industrial IoT research initiative.
 
 \section*{Data and Code Availability}
 The dataset manifests, federated simulation, Byzantine poisoning experiment, pure-Python edge inferencer and testbed instructions are available at \url{https://github.com/eldemaster/FedZTA-Edge}.
