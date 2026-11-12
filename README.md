@@ -1,10 +1,11 @@
 # FedZTA-Edge
 
-Federated Learning for Zero-Trust Edge Gateways in Industrial Data Spaces.
+Federated payload classification at the industrial edge: a measurement study plus an authenticated Byzantine-robust aggregator.
 
-Reference implementation and reproduction package for *"Collaborative Defense in Industrial
-Data Spaces: A Quantum-Resistant Federated Learning Approach for Zero-Trust Edge Gateways"*
-(`federated_paper_v5.tex`).
+Reference implementation and reproduction package for *"What Does Federation Buy a Payload
+Classifier at the Edge? A Measurement Study and an Authenticated Byzantine-Robust Aggregator
+for Industrial Gateways"* (`paper/`). Earlier drafts carried "quantum-resistant" and "zero-trust"
+in the title; those are no longer claimed.
 
 ## Headline result
 
@@ -19,8 +20,14 @@ landscape, produces one that beats both:
 | Edge B (API gateway) | 0.9817 | 0.988 | 0.744 |
 | **Federated** | **0.9850** | **1.000** | **0.792** |
 
-On a Raspberry Pi 4: 452 req/s at 0.229 ms per classification, 10.4 MB resident,
-1,040-byte synchronisation payload, ML-KEM-512 encapsulation at 0.162 ms.
+Caveats: K=2 nodes, small unique-payload corpus, public wordlist data. Federation matches the
+best silo; it does not dramatically beat it. TODO(results): centralised baseline, larger K,
+multi-seed CIs, evaluation at the deployed threshold.
+
+Edge figures (452 req/s, 0.229 ms, 10.4 MB, ML-KEM-512 at 0.162 ms) came from an earlier
+pre-augmentation draft with no archived raw output. TODO(results): regenerate on the Pi.
+The 1,040-byte sync payload is fixed by the model dimension. No bandwidth-reduction
+percentage is claimed.
 
 ## Layout
 
@@ -135,12 +142,20 @@ documented in §VI-B:
 
 ## Status
 
-The gateway inspects the request line only -- **no POST bodies, no headers, no
-cookies**. Detection figures are measured on query strings. This is the largest
-gap between the prototype and a deployable WAF.
+The gateway inspects the request path, query string, selected headers (`User-Agent`,
+`Referer`, `Cookie`) and the body (methods GET/POST/PUT, body capped at 8 KB), scoring each
+context independently. The detector is a stateless per-request classifier: there is no
+session tracking, behavioural profiling or continuous authentication. Detection figures are
+measured on public wordlist data, not production traffic, and the deployed threshold
+(`BLOCK_THRESHOLD` = 0.15) has no reported held-out FPR/recall yet (TODO(results)).
+
+The learning loop is authenticated (HMAC, nonces, allowlist) under closed membership; this is
+not Sybil resistance in the FL sense and not a zero-trust architecture. Byzantine robustness
+was shown only against a naive sign-flip on the bare median (no norm gate); adaptive attacks
+are TODO(results). The weight channel is signed but not encrypted.
 
 Differential privacy is specified but **not implemented**; no epsilon is claimed.
-ML-KEM is benchmarked as a component and is not yet wired into the live weight channel.
-See the Limitations section of the manuscript.
+ML-KEM is benchmarked as a standalone component and is not wired into the live weight channel
+(future work). See the Limitations section of the manuscript.
 
 `legacy/` holds superseded material with an explanation of why each item was replaced.
