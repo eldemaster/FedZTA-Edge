@@ -46,7 +46,7 @@ An update passes, in order: enrolment lookup, constant-time MAC comparison, time
   \small
   \begin{tabular}{@{}p{3.0cm}@{\hspace{4pt}}c@{\hspace{4pt}}p{1.7cm}@{\hspace{4pt}}p{1.2cm}@{}}
     \toprule
-    Case & Expect & Control & Adversary \\
+    Case & Expect & Control & Threat \\
     \midrule
     Untagged update (old format); unknown self-tagged identity & 401 & enrolment, MAC & A2, A3 \\
     Forged tag; tampered weights with stale tag & 401 & MAC & A2 \\
