@@ -14,6 +14,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 import fedzta_features as F
 
 SEEDS, ROUNDS, LOCAL_EPOCHS = [42, 43, 44, 45, 46, 47, 48, 49], 20, 30
+SHIPPED_SEED = SEEDS[0]
 N_BENIGN, N_ATTACK = 3000, 1000
 N_TEST_BENIGN, N_TEST_ATTACK = 1500, 500
 CLASSES = np.array([0, 1])
@@ -129,6 +130,10 @@ def main():
     raw_pools = {k: fetch(v) for k, v in SRC.items()}
     
     metrics_all = {"Edge A (web)": {}, "Edge B (api)": {}, "Federated": {}}
+    # Artefacts of the shipped seed only. Previously glob/metrics/hist/uniq were
+    # simply left holding whatever the LAST loop iteration produced (seed 49)
+    # while config.shipped_seed claimed 42.
+    shipped = {}
     
     for seed in SEEDS:
         global SEED
@@ -196,6 +201,8 @@ def main():
             hist.append({"round": rnd,
                          "roc_auc": float(roc_auc_score(y_t, probe.decision_function(X_t)))})
         glob = set_params(new_model(), *g)
+        if seed == SHIPPED_SEED:
+            shipped = {"glob": glob, "hist": hist, "uniq": uniq}
     
         print("\n" + "=" * 86)
         print(f"{'model':<16}{'ROC-AUC':>9}{'PR-AUC':>9}{'XSS@0.1%':>10}"
@@ -213,6 +220,8 @@ def main():
                 "fpr_api": float((sc[m_api] > 0).mean()),
             }
             r = metrics[nm]
+            if seed == SHIPPED_SEED:
+                shipped.setdefault("metrics", {})[nm] = dict(r)
             for k, v in r.items():
                 if k not in metrics_all[nm]:
                     metrics_all[nm][k] = []
@@ -255,15 +264,16 @@ def main():
         "config": {"features": "poly-ngram+syntactic", "ngram_n": F.NGRAM_N,
                    "ngram_d": F.NGRAM_D, "dim": F.DIM, "normalisation": F.NORM,
                    "split": "domain", "rounds": ROUNDS, "local_epochs": LOCAL_EPOCHS,
-                   "seeds": SEEDS, "shipped_seed": SEEDS[0]},
-        "coefficients": glob.coef_[0].tolist(),
-        "intercept": float(glob.intercept_[0]),
+                   "seeds": SEEDS, "shipped_seed": SHIPPED_SEED,
+                   "stored_seed": SHIPPED_SEED},
+        "coefficients": shipped["glob"].coef_[0].tolist(),
+        "intercept": float(shipped["glob"].intercept_[0]),
         "update_bytes": (F.DIM + 1) * 4,
-        "unique_payloads": uniq,
-        "metrics": metrics,
+        "unique_payloads": shipped["uniq"],
+        "metrics": shipped["metrics"],
         "metrics_aggregate": agg,
         "metrics_per_seed": metrics_all,
-        "convergence": hist,
+        "convergence": shipped["hist"],
     }
     with open("fed_model.json", "w") as fh:
         json.dump(out, fh, indent=2)
