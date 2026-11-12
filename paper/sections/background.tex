@@ -1,0 +1,42 @@
+\section{Background and Related Work}
+\label{sec:background}
+
+This section fixes the concepts the rest of the paper relies on: zero-trust access control, federated learning, behavioural $n$-gram profiling of request payloads, and post-quantum cryptography for the weight channel. It then places the work against prior art.
+
+\subsection{Zero-Trust Architecture}
+Zero trust drops the assumption that a request is benign because it originates inside the network perimeter. NIST SP~800-207 formalises this: no implicit trust is granted by network location, and every access decision is made per request, based on the observable state of the requester and the resource~\cite{nist800207}. Google's BeyondCorp was an early large-scale deployment of the idea~\cite{beyondcorp}. The architecture separates a policy decision point from policy enforcement points that sit in front of each resource.
+
+In our setting the enforcement point is a gateway-resident Web Application Firewall (WAF) on each edge node, and the decision signal is a learned score over the request payload. The open problem is how to keep that decision function current against new payloads without centralising the traffic it is trained on. Signature engines such as Snort~\cite{roesch1999} depend on curated rules and cannot adapt on their own. Sommer and Paxson also caution that learned detectors in network security face a hard ``closed world'' problem, because the benign class is site-specific and attacks keep changing~\cite{sommer2010}. This is the property that makes the benign-traffic profile, rather than the attack mix, the axis that matters for federation in our evaluation.
+
+\subsection{Federated Learning}
+Federated learning (FL) trains a shared model while data stays on the participants. In Federated Averaging (FedAvg), each client runs local optimisation and the server averages the returned parameters, weighted by local sample count~\cite{mcmahan2017}. Kairouz \textit{et al.} survey the open problems~\cite{kairouz2021}; those most relevant here are statistical heterogeneity, communication cost, and adversarial participants.
+
+\paragraph{Heterogeneity.}
+When client distributions differ, local optima diverge. Li \textit{et al.} prove that FedAvg converges more slowly on non-IID data~\cite{li2020convergence}, and FedProx adds a proximal term to stabilise training under such heterogeneity~\cite{li2020fedprox}. We do not use a proximal term; we instead study which \emph{kind} of heterogeneity helps or hurts a plain FedAvg aggregation.
+
+\paragraph{Privacy.}
+Raw data never leaves a client, but updates are not free of information: gradients can be inverted to reconstruct training inputs~\cite{zhu2019}. Differentially private training with clipping and noise~\cite{abadi2016} and cryptographic secure aggregation~\cite{bonawitz2017} are the standard mitigations. Mothukuri \textit{et al.} survey the resulting attack and defence landscape~\cite{mothukuri2021}.
+
+\paragraph{Byzantine robustness.}
+A compromised client can upload arbitrary parameters. Krum~\cite{blanchard2017}, coordinate-wise median and trimmed mean~\cite{yin2018} replace the mean with a robust statistic, under the assumption that honest clients outnumber malicious ones. These rules are not a complete defence: Fang \textit{et al.} construct local model-poisoning attacks that degrade them~\cite{fang2020}.
+
+\paragraph{Communication.}
+Update size dominates cost on constrained links. Quantisation and encoding schemes such as QSGD reduce it~\cite{alistarh2017}. A fixed-width feature map attacks the same problem differently, by making the model, and hence the update, a constant size.
+
+\paragraph{FL for IoT security.}
+FL has been applied to anomaly detection on IoT gateways, for example DIoT, which learns per-device-type communication profiles federatedly~\cite{nguyen2019diot}, and is surveyed for IoT in general by Nguyen \textit{et al.}~\cite{nguyen2021}. We are not aware of prior work that evaluates, as we do, how the choice of non-IID axis (attack campaign versus benign profile) affects a federated WAF.
+
+\subsection{Behavioural and \texorpdfstring{$n$}{n}-gram Profiling of Payloads}
+Behavioural profiling models what normal input looks like and scores deviations. Forrest \textit{et al.} used short sequences of system calls as a signature of ``self'' for processes~\cite{forrest1996}. For network and web traffic, PAYL models the byte-frequency distribution of payloads~\cite{wang2004payl}, and Kruegel and Vigna model request attributes of web applications~\cite{kruegel2003}. Character $n$-gram statistics are a long-standing representation in text classification~\cite{cavnar1994}, and they transfer directly to HTTP payloads because injection attacks have distinctive local character patterns (for example quote--keyword--comment sequences in SQL injection, or angle-bracket--tag sequences in XSS).
+
+An explicit $n$-gram vocabulary grows with the traffic seen, which would make the model size, and every synchronisation payload, unbounded. The hashing trick maps $n$-grams into a fixed number of buckets without a vocabulary~\cite{weinberger2009}. Our feature map hashes character trigrams ($n=3$) into 256 buckets with a polynomial rolling hash, $\ell_2$-normalises the bucket counts, and appends three scaled syntactic scalars (length, count of non-alphanumeric characters, Shannon entropy), giving a 259-dimensional vector (\texttt{fedzta\_features.py}). The same module runs on cloud and edge so both sides bucket identically. Because the map is fixed and cheap to compute, a linear classifier suffices on the gateway, in contrast to the deep intrusion detectors whose footprint embedded gateways struggle to carry.
+
+\subsection{Post-Quantum Cryptography for the Weight Channel}
+Model parameters are valuable, and an adversary who records the channel today may decrypt it later. Shor's algorithm breaks the factoring and discrete-logarithm problems that underlie RSA and elliptic-curve Diffie--Hellman~\cite{shor1997}, so key exchange that relies on them is exposed to this ``store now, decrypt later'' strategy. Post-quantum cryptography replaces them with problems believed hard for quantum computers~\cite{bernstein2017}.
+
+NIST has standardised two lattice-based schemes derived from the CRYSTALS submissions. \textbf{ML-KEM} (FIPS~203)~\cite{fips203}, derived from CRYSTALS-Kyber~\cite{bos2018kyber}, is a key-encapsulation mechanism: the receiver publishes a public key, the sender encapsulates a fresh shared secret under it and returns a ciphertext, and the receiver decapsulates. The shared secret then keys a symmetric cipher for the payload. \textbf{ML-DSA} (FIPS~204)~\cite{fips204}, derived from CRYSTALS-Dilithium~\cite{ducas2018dilithium}, is the corresponding digital signature scheme.
+
+Our prototype uses ML-KEM-512, the smallest parameter set, through the \texttt{pqcrypto} Python bindings. The cloud aggregator (\texttt{cloud\_pqc.py}) generates a keypair and serves the public key. The edge node (\texttt{edge\_pqc.py}) fetches it and encapsulates a shared secret, which protects the model-weight transfer. Message authentication is handled separately. Each gateway is enrolled with a 256-bit secret and signs updates with HMAC-SHA256 (\texttt{fedzta\_auth.py}), which uses only the Python standard library and keeps the edge footprint small. A signature scheme such as ML-DSA would replace the shared secret with per-gateway public keys, at the price of an extra dependency on the edge. We discuss this as a design alternative and do not evaluate it.
+
+\subsection{Positioning}
+Compared with this literature, our contribution is the combination rather than any single component. We (i) cast the federated WAF as a zero-trust enforcement point with a fixed-size, hashed $n$-gram model that is cheap enough for ARM gateways; (ii) separate two non-IID axes and show empirically that only one of them makes federation outperform local training; and (iii) protect the weight channel with a NIST-standardised post-quantum KEM and authenticate updates with a lightweight MAC. The robustness we claim is limited to the baseline Byzantine rules above, and no formal privacy guarantee is claimed; both limits are discussed with the evaluation.

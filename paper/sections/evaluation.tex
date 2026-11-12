@@ -1,0 +1,196 @@
+\section{Evaluation}
+\label{sec:evaluation}
+
+We evaluate FedZTA-Edge along five questions. (i)~Does federation improve detection over isolated edge models, and under which kind of heterogeneity? (ii)~How accurate is the shipped, augmented model on payloads it has never seen? (iii)~Does robust aggregation survive model poisoning? (iv)~What does the gateway cost on ARM hardware? (v)~How much cloud-bound traffic does federation save? Every number below is read from a result file or script in the repository (\texttt{matrix\_results.json}, \texttt{fed\_model.json}, \texttt{poisoning\_results.json}, \texttt{bandwidth\_results.json}); where a number is not backed by a current result file, we say so. We report weaknesses alongside strengths, and Section~\ref{sec:eval-limits} collects them.
+
+\subsection{Experimental Setup}
+\label{sec:eval-setup}
+
+\paragraph{Testbed.}
+The cloud aggregator is an x86\_64 Ubuntu server (14 cores, 31\,GB RAM) running the aggregation service and all offline training studies. Two edge gateways are Raspberry~Pi~4 boards (aarch64 Cortex-A72, 4\,GB RAM), each running the pure-Python threaded gateway (\texttt{continuous\_waf.py}) on port~8080 with a 15\,s synchronisation interval. Gateways identify themselves with a stable client identifier so the aggregator can key updates by peer.
+
+\paragraph{Data.}
+All payloads come from the public SecLists corpus~\cite{seclists}; no payload is synthesised. Attacks are SQL injection (SQLi, 17 lists) and cross-site scripting (XSS, 7 lists). Benign traffic has two profiles: ``web'' (path words, \texttt{raft-small-words}) and ``API'' (\texttt{api-seen-in-wild}, \texttt{api-endpoints}, \texttt{graphql}). Table~\ref{tab:eval-corpora} lists the deduplicated corpora.
+
+\begin{table}[t]
+\centering
+\caption{Unique payloads after deduplication and the disjoint 70/30 train/test split (\texttt{fed\_model.json}).}
+\label{tab:eval-corpora}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Class} & \textbf{Unique} & \textbf{Train} & \textbf{Test} \\ \midrule
+Benign (web) & 43{,}007 & 30{,}104 & 12{,}903 \\
+Benign (API) & 8{,}013 & 5{,}609 & 2{,}404 \\
+SQLi & 681 & 476 & 205 \\
+XSS & 523 & 366 & 157 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+Two protocol decisions matter more than any hyperparameter. First, we split by \emph{unique payload} before any resampling: drawing train and test sets independently from one pool places identical strings in both and measures memorisation. With a few hundred unique attack strings the effect is severe, so every test payload is absent from every node's training data. Second, benign and malicious values are placed in the same request context, so that request structure alone cannot predict the label; an earlier configuration in which benign and attack requests used different templates let a classifier reach a perfect ROC-AUC on attack classes it never trained on, by separating URL shapes rather than maliciousness.
+
+\paragraph{Data augmentation.}
+Early gateway models learned payload \emph{length} and surrounding context rather than content: attacks in the corpora are short, so benign requests with realistic headers, JSON bodies or long prose were flagged. The production training script (\texttt{train\_production\_model.py}) therefore wraps every sampled payload, benign or malicious, in one of seven contexts chosen uniformly: the bare value; a value prefixed with a browser user-agent string; a cookie header with random identifiers; a full URL with a query string; a JSON body with a prose padding field; a form body with a CSRF token; and a prose sentence preceding the value. This is intended to neutralise the length feature and the benign-header baseline. It also shifts the model's intercept, which is why the gateway's blocking threshold was lowered to $\texttt{BLOCK\_THRESHOLD}=0.15$ (\texttt{continuous\_waf.py}).
+
+\paragraph{Node topologies.}
+Each node trains on 3{,}000 benign and 1{,}000 attack samples (500 SQLi, 500 XSS); the test set has 1{,}500 benign (750 web, 750 API) and 1{,}000 attack samples (500 per class), all drawn from held-out payloads. We study two non-IID axes. In the \emph{attack} axis both nodes share the benign profile but see disjoint attack mixes (the matrix study uses disjoint campaigns). In the \emph{domain} axis both nodes see the full attack mix but different benign profiles: node~A web paths, node~B API endpoints.
+
+\paragraph{Features and training.}
+A request is mapped to a vector in two ways. \emph{Syntactic} features are three scalars (length, count of non-alphanumeric characters, Shannon entropy), each scaled by a fixed a-priori constant. \emph{$n$-gram} features are $\ell_2$-normalised hashed character 3-gram counts in $D$ buckets (polynomial rolling hash) followed by the three syntactic scalars, giving dimension $D+3$. The classifier is logistic regression trained by SGD (\texttt{loss=log\_loss}, $\ell_2$ penalty $\alpha=10^{-4}$, constant $\eta_0=0.01$). Federated training runs $R=20$ rounds of $E=30$ local epochs, with sample-weighted averaging; isolated baselines train for $R\cdot E$ epochs on their own data. Results are averaged over eight seeds (42--49), each with a fresh payload split; we report mean $\pm$ standard deviation.
+
+\paragraph{Metrics.}
+We report ROC-AUC and PR-AUC; recall on each attack class at a matched 0.1\% false-positive budget on the pooled benign test set (so models at different operating points are comparable); and the false-positive rate on each benign domain at the default decision threshold (probability~0.5). The ``FPR'' columns therefore describe the default threshold, \emph{not} the gateway's deployed threshold of 0.15.
+
+\paragraph{Two experimental configurations.}
+The design-space study (\texttt{fl\_simulation\_v4.py}, output \texttt{matrix\_results.json}) compares both feature sets across both axes using a small $D=64$ ($\dim=67$) hashing and unaugmented, templated requests; it is a controlled comparison, not the shipped model. The production study (\texttt{train\_production\_model.py}, output \texttt{fed\_model.json}) trains the shipped $D=256$ ($\dim=259$) model with the augmentation above. They use different data pipelines and should not be compared numerically.
+
+\subsection{Where Does Federation Help?}
+\label{sec:eval-matrix}
+
+Table~\ref{tab:eval-matrix} gives the full feature $\times$ axis matrix.
+
+\begin{table*}[t]
+\centering
+\caption{Design-space matrix (\texttt{matrix\_results.json}; mean over eight seeds; std.\ of ROC-AUC in parentheses). Recall columns are at 0.1\% pooled FPR. FPR-API is the default-threshold false-positive rate on API traffic. Bold marks the best ROC-AUC in each feature/axis group; differences under 0.0005 are treated as ties and both are marked.}
+\label{tab:eval-matrix}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+\textbf{Features} & \textbf{Axis / model} & \textbf{ROC-AUC} & \textbf{XSS} & \textbf{SQLi} & \textbf{FPR-API} \\ \midrule
+\multirow{6}{*}{Syntactic (3)}
+ & attack: Edge A & 0.9723 (0.0055) & 0.894 & 0.679 & 0.0140 \\
+ & attack: Edge B & \textbf{0.9891} (0.0034) & 0.922 & 0.777 & 0.0123 \\
+ & attack: Federated & 0.9788 (0.0050) & 0.903 & 0.737 & 0.0080 \\
+ & domain: Edge A & 0.9803 (0.0054) & 0.902 & 0.736 & 0.0085 \\
+ & domain: Edge B & \textbf{0.9919} (0.0033) & 0.946 & 0.841 & 0.0010 \\
+ & domain: Federated & 0.9902 (0.0034) & 0.926 & 0.809 & 0.0012 \\ \midrule
+\multirow{6}{*}{$n$-gram, $D{=}64$ (67)}
+ & attack: Edge A & 0.9532 (0.0056) & 0.904 & 0.581 & 0.0135 \\
+ & attack: Edge B & \textbf{0.9895} (0.0031) & 0.913 & 0.805 & 0.0098 \\
+ & attack: Federated & 0.9826 (0.0044) & 0.927 & 0.764 & 0.0053 \\
+ & domain: Edge A & 0.9839 (0.0043) & 0.915 & 0.768 & 0.0102 \\
+ & domain: Edge B & \textbf{0.9916} (0.0035) & 0.954 & 0.850 & 0.0013 \\
+ & domain: Federated & \textbf{0.9918} (0.0032) & 0.952 & 0.833 & 0.0010 \\ \bottomrule
+\end{tabular}
+\end{table*}
+
+The pattern is consistent, and less flattering than a federation advocate would like. On the attack axis, each silo is blind to the other's attack class, and federation recovers most of the gap for the weaker node. With $n$-gram features Edge~A's SQLi recall rises from 0.581 (isolated) to 0.764 (federated). The federated model remains below the stronger silo (Edge~B, 0.805), which is the behaviour expected of FedAvg when local optima diverge~\cite{li2020convergence}: the average lies between the two, not above. On the domain axis the federated model is statistically indistinguishable from the better silo in ROC-AUC (0.9918 vs.\ 0.9916 with $n$-grams; the standard deviation across seeds is 0.003) and is below it on SQLi recall (0.833 vs.\ 0.850). Its benefit is that it is as good as the \emph{best} silo on \emph{both} benign domains without knowing in advance which silo that is: Edge~A alone has a 1.0\% default-threshold FPR on API traffic, which federation reduces to 0.10\% with $n$-grams. In short, federation reliably lifts the weaker node and lowers cross-domain false positives. It does not, in these experiments, reliably beat the best isolated model.
+
+\subsection{Shipped Model Accuracy}
+\label{sec:eval-detection}
+
+Table~\ref{tab:eval-detection} reports the production configuration ($D=256$, augmented, domain split).
+
+\begin{table}[t]
+\centering
+\caption{Shipped $D=256$ augmented model on unseen payloads, domain-split nodes (\texttt{fed\_model.json}), mean $\pm$ std over eight seeds. Recall at 0.1\% pooled FPR; FPR at the default threshold.}
+\label{tab:eval-detection}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Model} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{XSS} & \textbf{SQLi} & \textbf{FPR web} & \textbf{FPR API} \\ \midrule
+Edge A & 0.9859$\pm$0.0035 & 0.9871$\pm$0.0032 & 0.954$\pm$0.046 & 0.807$\pm$0.073 & 0.0010 & 0.0052 \\
+Edge B & 0.9938$\pm$0.0036 & 0.9940$\pm$0.0031 & 0.979$\pm$0.020 & \textbf{0.879}$\pm$0.033 & 0.0008 & 0.0005 \\
+Federated & \textbf{0.9947}$\pm$0.0019 & \textbf{0.9950}$\pm$0.0017 & \textbf{0.980}$\pm$0.022 & 0.865$\pm$0.059 & 0.0005 & 0.0007 \\ \bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fl_metrics.pdf}
+\caption{Per-class detection of the shipped model for a single seed (seed~49, the last one run; \texttt{fed\_model.json} stores this run's coefficients and metrics although its config records 42 as the shipped seed); the multi-seed means are in Table~\ref{tab:eval-detection}. A single seed is not representative of the spread: this seed's federated model happens to beat both silos on all three metrics.}
+\label{fig:eval-metrics}
+\end{figure}
+
+The federated model has the highest mean ROC-AUC (0.9947) and the lowest ROC-AUC variance across seeds, but its margin over Edge~B (+0.0009) is a fraction of one standard deviation. A per-seed comparison supports the same reading: federated ROC-AUC exceeds Edge~B in 5 of 8 seeds and Edge~A in 8 of 8. On SQLi recall, the hardest class, Edge~B is higher on average (0.879 vs.\ 0.865), and the federated model is worse by more than 0.08 in the worst seed. Federated XSS recall (0.980) matches Edge~B (0.979). We therefore do not claim that federation beats the best silo; we claim it matches it, beats the silo that has the wrong benign distribution, and has the lowest false-positive rate on web traffic. Fig.~\ref{fig:eval-metrics} (one seed) is more favourable than the multi-seed mean and should be read with that in mind. The disagreement between earlier single-seed runs about whether federation ``wins'' is precisely what the seed-stability study (\texttt{seed\_stability.py}) was written to expose; the multi-seed results above supersede any single-run claim.
+
+\paragraph{Convergence.}
+Global ROC-AUC (last seed, 49) is 0.9872 after round~1, 0.9943 after round~3 and 0.9958 after round~20 (\texttt{fed\_model.json}), so most of the benefit arrives within a few rounds. Rapid convergence bounds how long a newly learned pattern takes to propagate between sites.
+
+\paragraph{Accuracy versus update size.}
+Fig.~\ref{fig:eval-sweep} (right) sweeps the hashing dimension $D\in\{32,\dots,512\}$ (\texttt{sweep\_ngram.py}); an update costs $4(D+4)$ bytes, e.g.\ 1{,}040\,B at $D=256$ and 2{,}064\,B at $D=512$. \emph{Caveat:} the sweep values plotted in \texttt{fl\_sweep.pdf} are hardcoded in \texttt{make\_figures.py} from an earlier, pre-augmentation run; they have not been regenerated with the current pipeline (the federated ROC-AUC varies by under 0.007 across all $D$, i.e.\ the curve is nearly flat). We include the figure for the qualitative message that accuracy is insensitive to $D$ over a $16\times$ range, and flag it for regeneration before submission. The left panel (convergence) is regenerated from the current \texttt{fed\_model.json}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fl_sweep.pdf}
+\caption{Left: convergence of the global model's ROC-AUC across rounds. Right: ROC-AUC versus hashing dimension $D$ (and update size). The right panel uses values from a pre-augmentation run and is retained for its qualitative message only.}
+\label{fig:eval-sweep}
+\end{figure}
+
+\subsection{Byzantine Resilience}
+\label{sec:eval-byzantine}
+
+We instantiate $K=7$ nodes on the domain-split $n$-gram configuration ($\dim=259$, seed~42, 12 rounds, 20 local epochs). From round~4, $f=2$ nodes upload $-12\,w_k$ in place of their weights ($f<K/2$ with margin). Each round the same uploads are aggregated by mean, coordinate-wise median and trimmed mean ($\beta=2$) and each global model is scored on the held-out set (\texttt{poisoning\_results.json}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/poisoning_defense.pdf}
+\caption{Measured poisoning resilience (\texttt{poisoning\_experiment.py}). From round~4, two of seven nodes upload sign-flipped, $12\times$ amplified weights.}
+\label{fig:eval-poison}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Global-model ROC-AUC under poisoning (\texttt{poisoning\_results.json}); the attack starts in round~4.}
+\label{tab:eval-poison}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Aggregator} & \textbf{Round 3} & \textbf{Round 4} & \textbf{Round 12} \\ \midrule
+Mean (FedAvg) & 0.984 & 0.014 & 0.263 \\
+Coordinate median & 0.958 & 0.978 & 0.984 \\
+Trimmed mean ($\beta{=}2$) & 0.979 & 0.983 & 0.986 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+Plain averaging falls from 0.9841 ROC-AUC (round~3) to 0.0137 in the first poisoned round, i.e.\ the global model is inverted, then oscillates between 0.03 and 0.73 and ends at 0.263 (Table~\ref{tab:eval-poison}). Both robust rules keep improving after the attack begins, because the two poisoned uploads fall in the trimmed tails of every coordinate. Median ends at 0.9838 and trimmed mean at 0.9864. This is a single seed and a naive sign-flip adversary. Optimised attacks that know the aggregation rule can defeat median-style defences~\cite{fang2020}, and we claim no resistance to them. The experiment also assumes updates are authenticated (the gateways sign updates), since an unauthenticated aggregator has unbounded $f$.
+
+\subsection{Edge Cost on ARM}
+\label{sec:eval-hardware}
+
+\emph{Provenance.} The measurements in this subsection were taken on the Raspberry~Pi testbed and are recorded in the earlier draft (\texttt{federated\_paper\_v5.tex}), not in a current JSON result file; the load generator is \texttt{stress\_test.py}. They were taken with the 259-dimensional model but before the final augmentation and the threshold change, which do not alter inference cost (feature dimension and arithmetic are unchanged). They should be re-measured and archived before submission.
+
+Inference with the 259-coefficient model averages 0.229\,ms per request (up from 0.042\,ms with three features), a single-core ceiling of about 4{,}370\,req/s, with a peak resident set of 10.4\,MB dominated by the Python interpreter rather than the 1{,}040\,B model. Under 1{,}000 requests at concurrency~10, repeated ten times, the threaded gateway sustained $452.5\pm24.3$\,req/s, median latency $20.5\pm0.7$\,ms, 95th percentile $32.2\pm2.5$\,ms, and no failed requests over 10{,}000. Throughput is an order of magnitude below the inference ceiling, so the HTTP stack, not the classifier, is the bottleneck. A single-threaded server serialised keep-alive connections and capped throughput at 42--56\,req/s with 2.7--3.6\% timeouts; moving to \texttt{ThreadingHTTPServer} removed this, an artefact easily mistaken for a machine-learning cost. These throughput figures are for \emph{benign} traffic to a gateway issuing HTTP 200s; we have not measured throughput under a mixed attack load.
+
+ML-KEM-512 on the same board costs 0.122\,ms (key generation), 0.162\,ms (encapsulation) and 0.205\,ms (decapsulation) over $n=1000$ warmed-up trials (std.\ $\le 0.003$\,ms), negligible against a 15\,s synchronisation interval. Single-shot timings taken immediately after process start overstate these by 60\% or more, which an earlier revision reported.
+
+\subsection{Bandwidth and Data Sovereignty}
+\label{sec:eval-bandwidth}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/fl_bandwidth.pdf}
+\caption{Daily traffic to the cloud versus sustained request rate (\texttt{bandwidth\_analysis.py}). The federated cost is flat because each synchronisation carries a fixed 1{,}040\,B update regardless of inspected volume.}
+\label{fig:eval-bandwidth}
+\end{figure}
+
+Bandwidth claims for federated learning often compare a whole dataset against one update from one node. We charge federation for every round, every node and both directions. The 20-round training run transfers $20\times2\times2\times1{,}040=83{,}200$\,B against 332{,}983\,B of raw request payloads (mean request 27.4\,B): a reduction of only 75.0\%. The operational case is stronger because the costs scale differently: shipping logs grows linearly with traffic, while federation depends only on the synchronisation interval (Table~\ref{tab:eval-bandwidth}).
+
+\begin{table}[t]
+\centering
+\caption{Daily cloud-bound traffic for two gateways (\texttt{bandwidth\_results.json}).}
+\label{tab:eval-bandwidth}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+\textbf{Rate} & \textbf{Sync} & \textbf{Centralised} & \textbf{Federated} & \textbf{Reduction} \\ \midrule
+10\,req/s & 300\,s & 47.3\,MB & 1.2\,MB & 97.47\% \\
+100\,req/s & 300\,s & 473.1\,MB & 1.2\,MB & 99.75\% \\
+452\,req/s & 300\,s & 2{,}138.4\,MB & 1.2\,MB & 99.94\% \\
+452\,req/s & 15\,s & 2{,}138.4\,MB & 24.0\,MB & 98.88\% \\ \bottomrule
+\end{tabular}}
+\end{table}
+
+At the 15\,s interval the deployed testbed actually uses, the reduction at 452\,req/s is 98.88\%. The break-even is about 0.25\,req/s per node at a 5-minute interval, below which log shipping is cheaper. The comparison assumes the centralised baseline ships only the request payload (27.4\,B on average), a conservative baseline, since real logs carry headers and metadata and would be larger. Beyond volume, federation keeps operational payloads inside the site boundary, the property Industrial Data Space governance requires.
+
+\subsection{Limitations of the Evaluation}
+\label{sec:eval-limits}
+
+We list the weaknesses a reader should weigh.
+\begin{itemize}
+\item \textbf{Small attack corpora.} Only 681 unique SQLi and 523 XSS strings exist. Per-seed SQLi recall at 0.1\% FPR varies by $\pm0.06$, and the data are public fuzzing lists, not captured production attacks; absolute numbers will not transfer to adaptive attackers or to novel attack classes.
+\item \textbf{Federation gain is within noise.} Against the best silo, the ROC-AUC difference is below one standard deviation and SQLi recall is lower. The measured benefits are cross-domain false-positive reduction and protection of the weaker silo, not a higher ceiling.
+\item \textbf{Operating point.} FPR columns use threshold~0.5 while the gateway blocks at 0.15, a value chosen after augmentation shifted the intercept. We have no result file reporting detection or false-positive rate \emph{at} 0.15 on held-out traffic; deployed false-positive behaviour is therefore not quantified here.
+\item \textbf{Augmentation is synthetic.} The seven wrappers are hand-designed. They remove the length shortcut we found but are not real traffic, and the model has not been evaluated on captured production logs.
+\item \textbf{Two nodes.} Detection experiments use $K=2$ nodes; only the poisoning study uses $K=7$.
+\item \textbf{Stale artefacts.} The $D$-sweep panel and the ARM latency/throughput/PQC figures are not backed by current result files (Sections~\ref{sec:eval-detection} and \ref{sec:eval-hardware}).
+\item \textbf{Poisoning.} One seed, one naive adversary; no optimised or backdoor attack.
+\item \textbf{Linear model.} A logistic regression on hashed 3-grams cannot capture long-range or semantic structure; evasions by encoding, fragmentation or obfuscation are untested.
+\end{itemize}
