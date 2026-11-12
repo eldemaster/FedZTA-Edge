@@ -28,14 +28,14 @@ XSS & 523 & 366 & 157 \\ \bottomrule
 Drawing train and test sets independently from a pool of a few hundred attack strings puts identical strings on both sides and measures memorisation, so the first protocol splits by unique string. An earlier configuration in which benign and attack requests used different templates let a classifier reach a perfect ROC-AUC on attack classes it never trained on, by separating URL shapes; benign and malicious values now share the same request context. The early gateway models also learned payload length: corpus attacks are short, so benign requests carrying headers, JSON or prose were flagged. \texttt{train\_production\_model.py} therefore wraps every sample in one of seven contexts drawn uniformly (the bare value; a user-agent prefix; a cookie header; a full URL with query string; a JSON body with a prose field; a form body with a CSRF token; a prose sentence before the value). The wrappers shifted the intercept to $b\approx-5.57$ and led to the deployed $\tau=0.15$ (\texttt{BLOCK\_THRESHOLD} in \texttt{continuous\_waf.py}). Unique-string splitting does not remove near-duplicates, since the sqlmap and fuzzdb lists contain many variants of one template; the grouped splits of Section~\ref{sec:eval-deployed} address this.
 
 \paragraph{Nodes, features and training.}
-Each node trains on 3{,}000 benign and 1{,}000 attack samples. In the \emph{attack} axis the nodes share a benign profile and see different attack mixes; in the \emph{domain} axis both see the full attack mix, node~A web paths and node~B API endpoints. \emph{Syntactic} features are three scalars (length, non-alphanumeric count, Shannon entropy) scaled by fixed constants; \emph{$n$-gram} features are $\ell_2$-normalised hashed character 3-gram counts in $D$ buckets plus the three scalars, giving dimension $D+3$. The classifier is logistic regression trained by SGD (log loss, $\ell_2$ penalty $10^{-4}$, constant step $0.01$). Offline FedAvg runs $R=20$ rounds of $E=30$ local epochs with sample-weighted averaging; isolated baselines train for $R\cdot E$ epochs. The online aggregation of the deployed cloud server is a coordinate-wise median, evaluated separately in Section~\ref{sec:eval-byzantine}.
+Each node trains on 3{,}000 benign and 1{,}000 attack samples. In the \emph{attack} axis the nodes share a benign profile and see different attack mixes; in the \emph{domain} axis both see the full attack mix, node~A web paths and node~B API endpoints. \emph{Syntactic} features are three scalars (length, non-alphanumeric count, Shannon entropy) scaled by fixed constants; \emph{$n$-gram} features are $\ell_2$-normalised hashed character 3-gram counts in $D$ buckets plus the three scalars, giving dimension $D+3$. The classifier is logistic regression trained by SGD (log loss, $\ell_2$ penalty $10^{-4}$, constant step $0.01$). Offline FedAvg runs $R=20$ rounds of $E=30$ local epochs with sample-weighted averaging; isolated baselines train for $R\cdot E$ epochs. The online aggregation of the deployed cloud server is a coordinate-wise median, evaluated separately in Section~\ref{sec:eval-byzantine}. The shipped domain-axis configuration was chosen from the matrix of Section~\ref{sec:eval-matrix} because it was the only cell in which the federated model exceeded both silos. That selection used test results, so the exact-unique figures for this cell are favourable by construction; Section~\ref{sec:eval-deployed} re-tests it on validation-selected thresholds and grouped splits.
 
 \paragraph{Metrics and operating points.}
 ROC-AUC and PR-AUC are threshold-free. Recall is reported either at a pooled false-positive budget (0.1\% or 1\%) or at a fixed probability threshold, and every table and figure below names which. The threshold~0.5 is the convention of the controlled studies; $\tau=0.15$ is the deployed value.
 
 \begin{table*}[t]
 \centering
-\caption{The four evaluation pipelines. Their data, splits and operating points differ and their numbers are not interchangeable.}
+\caption{The five evaluation pipelines. Their data, splits and operating points differ and their numbers are not interchangeable.}
 \label{tab:eval-pipelines}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -44,6 +44,7 @@ ROC-AUC and PR-AUC are threshold-free. Recall is reported either at a pooled fal
 \textbf{Result file} & \textbf{Model} & \textbf{Split} & \textbf{Seeds} & \textbf{Scored unit} & \textbf{Operating point} \\ \midrule
 \texttt{matrix\_\allowbreak results.json} & $D{=}64$, unaugmented & exact-unique & 8 & whole string & 0.1\% FPR, $0.5$ \\
 \texttt{fed\_model.json} & shipped $D{=}256$, augmented & exact-unique & 8 & whole string & 0.1\% FPR, $0.5$ \\
+\texttt{baselines\_\allowbreak results.json} & shipped recipe, baselines & exact-unique & 8 & whole string & 0.1\%, 1\% FPR \\
 \texttt{eval\_deployed\_\allowbreak results.json} & recipe retrained & random / cluster / source & 20 & whole and gateway & 1\%, 0.1\% (validation), $0.15$ \\
 \texttt{real\_data\_\allowbreak results.json} & shipped; pooled retrain (LOCO) & CSIC; leave-one-corpus-out & 1; 3 & gateway contexts & $0.5$, $0.15$ \\ \bottomrule
 \end{tabular}
@@ -78,28 +79,66 @@ The first question is the controlled one: with two nodes, does federated averagi
 \end{tabular}
 \end{table*}
 
-On the attack axis each silo is blind to the other's attack class, and federation recovers most of the gap for the weaker node: with $n$-grams, Edge~A's SQLi recall rises from 0.581 to 0.764. It stays below Edge~B (0.805), the outcome expected when local optima diverge~\cite{li2020convergence} and the average falls between them. On the domain axis the federated model ties the better silo in ROC-AUC (0.9918 against 0.9916, with a seed standard deviation of 0.003) and trails it on SQLi recall (0.833 against 0.850). What federation buys there is the better silo's behaviour on both benign domains without knowing in advance which silo that is: Edge~A alone has a 1.0\% API false-positive rate at threshold 0.5, and the federated model brings it to 0.10\%. In this matrix, then, federation lifts the weaker node and lowers cross-domain false positives; it does not exceed the best isolated model. Whether that survives augmentation is the next test.
+On the attack axis each silo is blind to the other's attack class, and federation recovers most of the gap for the weaker node: with $n$-grams, Edge~A's SQLi recall rises from 0.581 to 0.764. It stays below Edge~B (0.805), the outcome expected when local optima diverge~\cite{li2020convergence} and the average falls between them. On the domain axis the federated model ties the better silo in ROC-AUC (0.9918 against 0.9916, with a seed standard deviation of 0.003) and trails it on SQLi recall (0.833 against 0.850). What federation buys there is the better silo's behaviour on both benign domains without knowing in advance which silo that is: Edge~A alone has a 1.0\% API false-positive rate at threshold 0.5, and the federated model brings it to 0.10\%. In this matrix, then, federation lifts the weaker node and lowers cross-domain false positives; it does not exceed the best isolated model.
 
 \subsection{Does the Result Survive Augmentation?}
 \label{sec:eval-detection}
 
 Table~\ref{tab:eval-detection} repeats the domain-split comparison for the shipped configuration ($D=256$, augmented), still with exact-unique splits and whole-string scoring.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Shipped $D{=}256$ augmented model, domain-split nodes, exact-unique split, whole-string scoring (\texttt{fed\_model.json}); mean $\pm$ std over eight seeds. Recall at 0.1\% pooled FPR; FPR at threshold 0.5, not at the deployed 0.15.}
 \label{tab:eval-detection}
-\resizebox{\columnwidth}{!}{%
+\small
 \begin{tabular}{@{}lrrrrrr@{}}
 \toprule
 \textbf{Model} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{XSS} & \textbf{SQLi} & \textbf{FPR web} & \textbf{FPR API} \\ \midrule
 Edge A & 0.9859$\pm$0.0035 & 0.9871$\pm$0.0032 & 0.954$\pm$0.046 & 0.807$\pm$0.073 & 0.0010 & 0.0052 \\
 Edge B & 0.9938$\pm$0.0036 & 0.9940$\pm$0.0031 & 0.979$\pm$0.020 & \textbf{0.879}$\pm$0.033 & 0.0008 & 0.0005 \\
 Federated & \textbf{0.9947}$\pm$0.0019 & \textbf{0.9950}$\pm$0.0017 & \textbf{0.980}$\pm$0.022 & 0.865$\pm$0.059 & 0.0005 & 0.0007 \\ \bottomrule
-\end{tabular}}
-\end{table}
+\end{tabular}
+\end{table*}
 
 The federated model has the highest mean ROC-AUC and the smallest seed variance, but its margin over Edge~B (0.0009) is a fraction of one standard deviation: it exceeds Edge~B in 5 of 8 seeds and Edge~A in 8 of 8. On SQLi recall, the hardest class, Edge~B is higher on average (0.879 against 0.865) and the federated model falls 0.09 short in the worst seed. The reading is the same as in the matrix. The federated model matches the better silo, beats the silo trained on the wrong benign domain, and has the lowest web false-positive rate. Over the 20 rounds, global ROC-AUC (last seed) is 0.9872 after round~1, 0.9943 after round~3 and 0.9958 after round~20, so most of the offline gain arrives within three rounds; this trajectory says nothing about how fast a pattern would propagate through the deployed 15\,s synchronisation. We do not report a hashing-dimension sweep: the only curve in the repository was hard-coded in \texttt{make\_figures.py} from a pre-augmentation run and cannot be regenerated from a result file.
+
+\subsection{Baselines: Pooling, Rules, Stronger Learners, FedProx}
+\label{sec:eval-baselines}
+
+A federated result means little without the comparisons the studies above lack. \texttt{baselines.py} scores them on the data, exact-unique splits, domain-split topology and per-seed random streams of \texttt{train\_production\_model.py}, for the same eight seeds, with whole-string scoring (\texttt{baselines\_results.json}). The learned models use the shipped features ($D=256$, augmented). Pooled models train on both nodes' data. FedProx adds the proximal term $\tfrac{\mu}{2}\lVert w-w_{\text{global}}\rVert^2$ to the local objective, with a numpy logistic-regression solver whose plain-FedAvg run ($\mu=0$) is reported for reference. Three detectors use no training: twelve regular expressions for common SQLi and XSS constructs (a request scores the number of classes that match), the fraction of metacharacters in the string, and libinjection's SQLi and XSS tokenisers. Gradient-boosted trees and a two-layer perceptron are trained on the same features. The intervals in Table~\ref{tab:eval-baselines} are bootstrap resamples of the test set and capture test-sampling uncertainty only; the standard deviation of ROC-AUC across seeds is 0.003--0.009 for every learned model. Tied, binary detectors cannot be set to a nominal false-positive budget, so regex and libinjection report one recall at their actual false-positive rates, 0.000 and 0.0002.
+
+\begin{table*}[t]
+\centering
+\caption{Baselines on the shipped-model protocol (\texttt{baselines\_results.json}; exact-unique split, whole-string scoring, eight seeds). ROC-AUC with bootstrap 95\% interval; recall over all attacks at 0.1\% and 1\% pooled false-positive budgets; SQLi recall at 1\%. Regex and libinjection are binary (one operating point).}
+\label{tab:eval-baselines}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{ROC-AUC} & \textbf{R@0.1\%} & \textbf{R@1\%} & \textbf{SQLi@1\%} \\ \midrule
+Pooled, linear (SGD) & 0.9685 (.9654--.9717) & 0.816 & 0.883 & 0.816 \\
+FedAvg, linear (SGD, shipped recipe) & 0.9688 (.9654--.9714) & 0.816 & 0.884 & 0.818 \\
+FedAvg, linear (numpy solver) & 0.9690 (.9663--.9716) & 0.813 & 0.885 & 0.817 \\
+FedProx $\mu{=}0.01$ & 0.9635 (.9599--.9665) & 0.799 & 0.858 & 0.787 \\
+FedProx $\mu{=}0.1$ & 0.9248 (.9209--.9286) & 0.473 & 0.522 & 0.441 \\
+FedProx $\mu{=}1$ & 0.7986 (.7934--.8044) & 0.266 & 0.284 & 0.241 \\
+Isolated Edge A (web) & 0.9613 (.9585--.9646) & 0.768 & 0.871 & 0.797 \\
+Isolated Edge B (API) & 0.9681 (.9658--.9710) & 0.711 & 0.862 & 0.798 \\ \midrule
+Pooled, gradient-boosted trees & 0.9887 (.9873--.9901) & 0.893 & 0.950 & 0.908 \\
+Pooled, MLP (64,32) & 0.9759 (.9741--.9783) & 0.786 & 0.904 & 0.860 \\ \midrule
+Regex rules (12 classes) & 0.8734 (.8690--.8769) & 0.747 & 0.747 & 0.676 \\
+Metacharacter fraction & 0.8097 (.8037--.8161) & 0.118 & 0.178 & 0.134 \\
+libinjection & 0.7919 (.7857--.7972) & 0.584 & 0.584 & 0.379 \\ \bottomrule
+\end{tabular}
+\end{table*}
+
+\paragraph{Pooling is the upper bound for the linear model, and federation reaches it.}
+Federated averaging and pooled training of the same linear model are indistinguishable: ROC-AUC 0.9688 against 0.9685 (the paired difference is $+0.0003$, positive in 6 of 8 seeds), and recall at 1\% FPR 0.884 against 0.883. Against the isolated silos the picture of the earlier tables repeats: FedAvg exceeds Edge~A in every seed (mean $+0.0075$ AUC) and Edge~B by 0.0008, positive in 4 of 8 seeds, but it raises recall at 1\% FPR over Edge~B by 0.023 on average, in all eight seeds. FedProx does not help. With $\mu=0.01$ it lowers ROC-AUC in all eight seeds (by 0.0054 on average) and larger $\mu$ degrades the model sharply (AUC 0.925 at $\mu=0.1$ and 0.799 at $\mu=1$); we tried four values of $\mu$ and did not look for the cause. FedAvg is not the weak link here.
+
+\paragraph{The linear model leaves headroom; trivial rules do not match it.}
+Gradient-boosted trees on the same features reach ROC-AUC 0.9887 and recall 0.950 at 1\% FPR, against 0.9688 and 0.884 for the federated linear model, and win in all eight seeds (paired AUC difference $+0.020$). The MLP sits between them (0.9759). The linear model is thus chosen for its fixed 1{,}040-byte update and inference cost, not for accuracy, and whether a boosted ensemble shows the same heterogeneity pattern is untested. The regex rules reach ROC-AUC 0.873 and recall 0.747 with no false positive on the test set, which is within 0.07 of the linear model at the 0.1\% budget but 0.14 below it at 1\%. The metacharacter fraction alone reaches only 0.810, so the task is not solved by counting punctuation. libinjection, a SQLi and XSS tokeniser, recalls 0.584 (XSS 0.789, SQLi 0.379) at a false-positive rate of 0.0002; we did not examine which strings it misses. These rule baselines are on word-list benign data and say nothing about their behaviour on real traffic.
+
+\paragraph{Scope of this comparison.}
+ModSecurity with the OWASP Core Rule Set could not be run: it needs libmodsecurity, a rule-set checkout and a request harness that this environment did not provide (paranoia levels 1--2 were planned), so no comparison with a deployed signature WAF exists beyond libinjection, which is one component of such systems. No character-level neural network was trained. The absolute numbers here are lower than those of Table~\ref{tab:eval-detection}: the shipped-recipe FedAvg of this table reaches 0.9688 where \texttt{fed\_model.json} records 0.9947. Both use the same script and seeds, but the corpora are fetched from an unpinned SecLists branch at run time and the two runs were produced at different times (September for the shipped model, November for the baselines); we have not isolated the cause of the gap. Comparisons are therefore made only within \texttt{baselines\_results.json}, and the baselines are not to be read against Table~\ref{tab:eval-detection}.
 
 Two things in this protocol favour every model. The test strings are exact-unique but not near-unique, and the threshold of 0.5 is not the one the gateway uses.
 
@@ -152,7 +191,7 @@ source & $+.0041$ ($+.0011$, $+.0070$) & $-.0004$ ($-.0025$, $+.0017$) & $.0000$
 The deployed value is not a conservative one. At $\tau=0.15$ the federated recipe flags 11.4\% of benign whole strings (cluster split; interval 10.3--12.5\%), where the validation-selected 1\% budget would flag 1.0\%. In exchange it recovers SQLi recall of 0.848 against 0.766 at the 1\% budget. Because every benign string is a path token, an 11\% rate is not an estimate of production behaviour; the CSIC result below suggests it is a lower bound.
 
 \paragraph{The serving view.}
-Scoring by context changes the ranking. Federated AUC falls from 0.959 to 0.921; the FPR at $\tau=0.15$ rises from 0.114 to 0.349 (interval 0.267--0.432), and Edge~B, trained only on API strings, goes from 0.182 to 0.679. The injected-context-only view gives 0.052 for the federated model, so the benign background headers account for most of the excess: the maximum over about four contexts exposes any context that the model scores high on every benign request. In this view the federated model has a higher gateway AUC than the silo selected on validation ($+0.017$, 15 of 20 seeds) only because validation tends to pick Edge~B, the silo that degrades most; Edge~A alone has gateway AUC 0.929 against 0.921 federated. The pooled model is better than the federated one in this view by 0.0009 ($-0.0014$ to $-0.0003$ for federated minus pooled). Which silo a site would have trained, and which view it serves, decide whether federation looks like a gain. A synthetic benign background already produces a 35\% false-positive rate at the deployed threshold; the next question is what a real one produces.
+Scoring by context changes the ranking. Federated AUC falls from 0.959 to 0.921; the FPR at $\tau=0.15$ rises from 0.114 to 0.349 (interval 0.267--0.432), and Edge~B, trained only on API strings, goes from 0.182 to 0.679. The injected-context-only view gives 0.052 for the federated model, so the benign background headers account for most of the excess: the maximum over about four contexts exposes any context that the model scores high on every benign request. In this view the federated model has a higher gateway AUC than the silo selected on validation ($+0.017$, 15 of 20 seeds) only because validation tends to pick Edge~B, the silo that degrades most; Edge~A alone has gateway AUC 0.929 against 0.921 federated. The pooled model is better than the federated one in this view by 0.0009 ($-0.0014$ to $-0.0003$ for federated minus pooled). Which silo a site would have trained, and which view it serves, decide whether federation looks like a gain. A synthetic benign background already produces a 35\% false-positive rate at the deployed threshold.
 
 \subsection{Real Data: A Deployment Failure}
 \label{sec:eval-real}
@@ -196,7 +235,7 @@ This failure was not invisible in Section~\ref{sec:eval-deployed}: the gateway v
 
 If structured benign traffic is the weak side, how does the attack side generalise beyond the lists the model saw? The leave-one-corpus-out study retrains a centralised model (shipped features, augmentation and hyper-parameters, 600 epochs, three seeds) with one source file, or one whole family, removed from training and scores the removed strings with one random wrapper each. These folds measure generalisation to a new source, not federation. Held-out payloads are exact-deduplicated against training; near-duplicates are not removed.
 
-On the in-distribution reference, attack recall is 0.829 at threshold 0.5 (interval 0.815--0.842) and 0.941 at 0.15, with benign FPR of 0.001 and 0.101. Holding out an entire family cuts recall sharply. When all 17 SQLi lists (681 strings) are removed, recall on them is 0.397 at 0.5 and 0.611 at 0.15 (0.579--0.642); for all 7 XSS lists (523 strings) it is 0.618 and 0.839. Single files vary widely at 0.15: the large \texttt{Generic-SQLi.txt} (260 strings) is recalled at 0.635, \texttt{quick-SQLi.txt} at 0.866 and \texttt{XSS-BruteLogic.txt} at 0.888, while 15 of the 24 attack files are recalled at 0.98 or above. Held-out benign sources show the cost of the lower threshold: the unseen web word list is flagged at 0.9\% at 0.5 and 25.2\% at 0.15 (interval 24.1--26.2\%), the unseen API lists at 0.4\% and 19.4\%. The deployed threshold buys recall on new attack sources at a price in false positives that the in-distribution test did not reveal. The remaining question is whether the learned model can be corrupted, and how much of the damage the aggregation can contain.
+On the in-distribution reference, attack recall is 0.829 at threshold 0.5 (interval 0.815--0.842) and 0.941 at 0.15, with benign FPR of 0.001 and 0.101. Holding out an entire family cuts recall sharply. When all 17 SQLi lists (681 strings) are removed, recall on them is 0.397 at 0.5 and 0.611 at 0.15 (0.579--0.642); for all 7 XSS lists (523 strings) it is 0.618 and 0.839. Single files vary widely at 0.15: the large \texttt{Generic-SQLi.txt} (260 strings) is recalled at 0.635, \texttt{quick-SQLi.txt} at 0.866 and \texttt{XSS-BruteLogic.txt} at 0.888, while 15 of the 24 attack files are recalled at 0.98 or above. Held-out benign sources show the cost of the lower threshold: the unseen web word list is flagged at 0.9\% at 0.5 and 25.2\% at 0.15 (interval 24.1--26.2\%), the unseen API lists at 0.4\% and 19.4\%. The deployed threshold buys recall on new attack sources at a price in false positives that the in-distribution test did not reveal.
 
 \subsection{Byzantine Resilience}
 \label{sec:eval-byzantine}
