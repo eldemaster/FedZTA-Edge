@@ -1,124 +1,84 @@
 \section{Security Analysis}
 \label{sec:security}
 
-This section states what the system defends against, measures the poisoning defence, describes the authenticated control plane and the adversarial tests that exercise it, records the fixes made during a code audit, and closes with the limitations that bound every claim above.
+The evaluation leaves a question the accuracy numbers cannot answer: if the gateways and the aggregator are exposed to adversaries, how much of the measured benefit survives, and which parts of the system are actually defended? The answer depends on whom the system trusts, so the adversaries and assumptions come first. They are stated here once; Section~\ref{sec:system} describes the mechanisms without repeating them.
 
 \subsection{Threat Model}
 \label{sec:sec-threat}
-
-We consider four adversaries.
+The deployment is two or more edge gateways, each with a Cortex-A72-class CPU, no GPU and a standard-library Python runtime, and one cloud aggregator. Request payloads are private to the site and are never sent to the aggregator. Four adversaries are considered.
 
 \begin{enumerate}
-  \item \textbf{A1: Application-layer attacker.} Sends injection and cross-site-scripting payloads through an edge gateway toward upstream services. The gateway's classifier is the control under test.
-  \item \textbf{A2: Network attacker.} Observes, replays, reorders or forges messages on the edge--cloud path, and may retain ciphertext indefinitely (``store now, decrypt later''). A2 holds no enrolled secret.
-  \item \textbf{A3: Sybil attacker.} Can reach the aggregator and tries to register or impersonate identities so as to outnumber honest peers.
-  \item \textbf{A4: Compromised gateway.} Holds a valid enrolled secret and uploads arbitrary parameters. A4 is a Byzantine client; up to $f$ such nodes are assumed.
+  \item \textbf{A1, application-layer attacker.} Sends injection and cross-site-scripting payloads through a gateway toward upstream services. The gateway classifier is the control under test.
+  \item \textbf{A2, network attacker.} Observes, replays, reorders or forges messages between gateway and aggregator, and may record traffic indefinitely. A2 holds no enrolled secret.
+  \item \textbf{A3, Sybil attacker.} Reaches the aggregator and tries to register or impersonate identities in order to outnumber honest peers.
+  \item \textbf{A4, compromised gateway.} Holds a valid enrolled secret and uploads arbitrary parameters; it is a Byzantine client, and up to $f$ such nodes are assumed.
 \end{enumerate}
 
-The cloud aggregator is trusted for availability and for executing the aggregation rule, but is not given raw payloads. We exclude a compromised aggregator, optimised model-poisoning crafted against the specific aggregation rule~\cite{fang2020}, and adaptive input-space evasion of the classifier (Section~\ref{sec:sec-limits}).
+The aggregator is trusted to run the aggregation rule and to keep enrolled secrets, but receives no raw payloads. Out of scope are a compromised aggregator, model poisoning optimised against the aggregation rule~\cite{fang2020}, and adaptive input-space evasion of the classifier (Section~\ref{sec:sec-limits}). The gateway does not authenticate the clients whose requests it inspects. A1 is handled by classification alone, which is why the paper treats the gateway as a payload-inspection enforcement point inside a zero-trust deployment and not as a zero-trust architecture.
 
-The layers are deliberately ordered so that each covers a gap the next cannot. Authentication (Section~\ref{sec:sec-auth}) bounds the number of identities, which is what makes $f$ finite. Admission checks reject malformed or grossly scaled updates before aggregation. Robust aggregation (Section~\ref{sec:sec-poison}) then contains the $f$ Byzantine peers that remain. Without the first layer the third is vacuous: an attacker who can mint identities owns the median regardless of its robustness guarantees.
+The controls are ordered by what each makes possible for the next. Authentication bounds the number of identities and thereby makes $f$ finite. Admission checks drop malformed or grossly scaled updates before aggregation. Robust aggregation then contains the $f$ Byzantine peers that remain. Without authentication the last layer is void, because an attacker who mints identities controls the median regardless of its guarantee.
 
 \subsection{Poisoning Defence}
 \label{sec:sec-poison}
-
-\paragraph{Aggregation rules and their precondition.}
-Coordinate-wise median and $\beta$-trimmed mean~\cite{yin2018} (see also Krum~\cite{blanchard2017}) are robust only while honest clients outnumber Byzantine ones per coordinate:
+Coordinate-wise median and $\beta$-trimmed mean~\cite{yin2018} (see also Krum~\cite{blanchard2017}) resist Byzantine updates only while honest clients outnumber Byzantine ones in every coordinate:
 \begin{equation}
   K \ge 2f + 1 .
   \label{eq:security:byz-bound}
 \end{equation}
-On the two-gateway testbed this gives $f = 0$: the median of two values is their mean, so one Byzantine node is half the population. The aggregator therefore computes $f=\lfloor (K-1)/2\rfloor$ from the number of distinct enrolled peers that have reported and returns it with the global model, so that a gateway is never told it is protected when it is not.
+On the two-gateway testbed $K=2$ gives $f=0$, since the median of two values is their mean and a single Byzantine node is half the population. The aggregator therefore computes $f=\lfloor (K-1)/2\rfloor$ from the number of distinct enrolled peers that have reported and returns it with the model, so that no gateway is told it is protected when it is not. Updates are keyed by client identity and only the latest per peer is kept, so the median runs across peers. An earlier version used a window of the last ten uploads regardless of sender, which is a median over time; a persistent attacker then simply fills a fixed share of the window.
 
-The aggregator also keys updates by client identity and keeps only the latest upload per peer, so the median is taken across \emph{peers}. An earlier implementation kept a sliding window of the last ten uploads regardless of origin; that computes a median over time, and a persistently malicious node simply occupies a constant share of the window.
+The $\ell_2$-norm gate rejects with HTTP~409 any update whose norm differs from the reference by more than a factor of $4$ (Section~\ref{sec:sys-agg}). It stops gross rescaling. It does not detect sign-flips of ordinary magnitude, nor an update shaped to stay just inside the ratio.
 
-An $\ell_2$-norm gate sits in front of aggregation. An update whose norm differs from the median norm of the other peers by more than a factor of $4$ (configurable) is rejected with HTTP~409 before it enters the median. With fewer than two other peers the reference falls back to the bootstrap model's norm. The gate is a cheap first filter against scaling; it does not detect sign-flips of ordinary magnitude, which is the median's job.
+The simulated experiment of Section~\ref{sec:eval-byzantine} uses seven nodes, two of which upload $-12\,w_k$ from round~4. It bypasses the norm gate: an update scaled by $12$ against the typical norm is far outside the admissible ratio at $\rho=4$ and the deployed aggregator would reject it before aggregation. The result therefore characterises the bare aggregation rules, not the deployed pipeline. There, plain averaging ends at 0.263 ROC-AUC while median (0.984) and trimmed mean (0.986) are unaffected, and $K=7\ge 2f+1=5$ holds. It is one seed, one attack and one strength. A separate sweep, \texttt{poisoning\_v2\_results.json}, varies attack family, malicious fraction, aggregator and gate state over eight seeds at $K\in\{10,20\}$; the gate-on results belong to that file and are the appropriate evidence for the deployed configuration. No result here applies to attacks optimised against the rule~\cite{fang2020}.
 
-\paragraph{Empirical result.}
-The simulated experiment (seven nodes, two of them uploading sign-flipped, $12\times$ amplified weights from round~4) is reported in Section~\ref{sec:eval-byzantine}, Fig.~\ref{fig:eval-poison} and Table~\ref{tab:eval-poison}. In short, plain averaging is inverted and ends at 0.263 ROC-AUC, whereas the coordinate-wise median (0.984) and trimmed mean (0.986) are unaffected. The bound~\eqref{eq:security:byz-bound} holds with margin ($7 \ge 5$).
-
-\paragraph{Scope of the claim.}
-This is a plain sign-flip adversary acting simultaneously and at a fixed boost. The experiment is simulated at $K=7$ with a single seed; the physical testbed has two gateways and therefore no Byzantine tolerance (Section~\ref{sec:sec-limits}). We make no claim against attacks optimised for the aggregation rule~\cite{fang2020}.
-
-\subsection{Authenticated Control Plane}
+\subsection{Authentication Properties}
 \label{sec:sec-auth}
+An update passes, in order: enrolment lookup, constant-time MAC comparison, timestamp within $120$\,s, nonce unseen in $300$\,s, per-identity rate limit, dimension and finiteness check (HTTP~400), norm gate (HTTP~409), and finally aggregation. The first failure rejects the update. Unknown and malformed identities receive the same response, so the endpoint does not reveal which identifiers are enrolled. The replay nonce is consumed during verification, before the rate limiter runs, so an update that draws a 429 cannot be resent verbatim. HMAC gives authenticity and freshness; it does not hide the update from an observer (Section~\ref{sec:sec-limits}).
 
-Each gateway is enrolled with a 256-bit secret from the operating system CSPRNG and signs every update with HMAC-SHA256~\cite{rfc2104} over a canonical serialisation (sorted keys, fixed separators). HMAC was chosen over a public-key signature to preserve the zero-dependency, $\sim$10\,MB edge footprint: \texttt{hmac} and \texttt{hashlib} are in the Python standard library. The cost is symmetric keys, so the aggregator holds every secret; see Section~\ref{sec:sec-limits}.
-
-An update passes the following checks in order, and the first failure rejects it:
-\begin{enumerate}
-  \item \textbf{Signature, timestamp, nonce.} The identity must be enrolled; the signature is compared in constant time before any field is trusted; the timestamp must lie within 120\,s of the server clock; the nonce must not have been seen in the last 300\,s. Unknown and malformed identities receive the same response, so the endpoint does not reveal which identifiers are enrolled.
-  \item \textbf{Per-identity rate limit.}
-  \item \textbf{Dimension and finiteness.} Wrong length or non-finite values (NaN, infinity) are rejected with HTTP~400.
-  \item \textbf{Norm gate.} Scaled updates are rejected with HTTP~409.
-  \item \textbf{Aggregation} by median or trimmed mean over the latest update per peer.
-\end{enumerate}
-Note that the replay nonce is consumed during verification, before the rate limiter runs, so a message that draws a rate-limit rejection can never be retried verbatim.
-
-\subsection{Authentication Attack Tests}
+\subsection{Test Plan for the Control Plane}
 \label{sec:sec-attacks}
-
-\texttt{test\_auth\_attacks.py} runs ten adversarial cases against a live aggregator. The first, unsigned, case reproduces the wire format the original aggregator accepted; each case is constructed so that a correct control plane gives a specific status code. The suite replays the current global weights for the one case that is meant to be accepted, so running it does not move the deployed model. Table~\ref{tab:security:attacks} lists the cases and expected verdicts.
+\texttt{test\_auth\_attacks.py} contains ten cases, each built so that a correct control plane returns one specific status code, and run against a live aggregator. The harness rebuilds every message instead of resending it, so a retry past a 429 cannot trigger the replay guard and mask the case under test, and the one case meant to be accepted replays the current global weights, leaving the deployed model unchanged. The repository holds no archived output from a run. Table~\ref{tab:security:attacks} is therefore a test plan with expected verdicts, not a record of passes.
 
 \begin{table}[t]
   \centering
-  \caption{Adversarial test cases and the status code a correct aggregator returns.}
+  \caption{Planned control-plane test cases and the status code a correct aggregator should return (not an archived result).}
   \label{tab:security:attacks}
   \small
-  \begin{tabular}{rp{4.6cm}cl}
+  \begin{tabular}{@{}p{3.3cm}cl p{1.4cm}@{}}
     \toprule
-    \# & Attack & Expect & Layer \\
+    Case & Expect & Control & Adversary \\
     \midrule
-    1  & Unsigned update (old format)            & 401 & signature \\
-    2  & Sybil identity, self-signed             & 401 & enrolment \\
-    3  & Forged signature, enrolled identity     & 401 & signature \\
-    4  & Tampered weights, stale signature       & 401 & signature \\
-    5  & Replay of an accepted update            & 401 & nonce \\
-    6  & Valid signature, timestamp 1\,h old     & 401 & timestamp \\
-    7  & Second update inside the rate window    & 429 & rate limit \\
-    8  & Enrolled peer, $50\times$ scaled weights & 409 & norm gate \\
-    9  & Enrolled peer, wrong dimension          & 400 & validation \\
-    10 & Enrolled peer, NaN weights              & 400 & validation \\
+    Untagged update (old format); unknown self-tagged identity & 401 & enrolment, MAC & A2, A3 \\
+    Forged tag; tampered weights with stale tag & 401 & MAC & A2 \\
+    Replay of an accepted update; timestamp one hour old & 401 & nonce, clock & A2 \\
+    Second update inside rate window & 429 & rate limit & A4 \\
+    $50\times$ scaled weights & 409 & norm gate & A4 \\
+    Wrong dimension; NaN weights & 400 & validation & A4 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Cases 1--6 cover A2 and A3: forged, tampered, replayed, stale and Sybil messages. Cases 8--10 cover A4 in its crudest forms, where an enrolled peer sends scaled, malformed or non-finite parameters. Case 5 sends a valid update, confirms it is accepted, and replays it. Because the rate limiter runs before the validation checks, cases expecting 400 or 409 first retry past a 429 with a freshly built message; the harness always rebuilds, never resends, so that a retry cannot trip the replay guard and mask the case under test.
+Even a clean run would show only that each control returns its designed verdict. It would not establish security, and it says nothing about plausible-norm, adversarially chosen weights from an enrolled node.
 
-These tests check that each control returns its designed verdict; they are not a proof of security. We do not report a pass count in this paper, because the suite executes against live infrastructure and its per-run output is not archived with the repository. Reproducing it requires the aggregator URL (\texttt{FEDZTA\_CLOUD}) and the enrolment file.
-
-\subsection{Audit-Pass Fixes}
+\subsection{Hardening Changes}
 \label{sec:sec-audit}
+A review of the code against the claims of the draft led to changes that matter for interpreting earlier results. The original poisoning figure had been drawn from hard-coded values and was replaced by the measurement above. The Byzantine argument had been void at $K=2$ and the update window was keyed by time rather than peer; both are corrected and $f$ is reported. Three inconsistent models had circulated, and a single model file now provides provenance for the simulation, aggregator, gateway and profiler.
 
-A review of the code against the claims of the draft paper, followed by a hardening pass, produced the changes below.
+Robustness fixes were also made. A missing or non-numeric \texttt{Content-Length} crashed handlers and now yields HTTP~400. Servers use \texttt{ThreadingHTTPServer} with a $5$\,s connection timeout, so slow clients cannot starve legitimate ones. Counters are updated under locks, and model snapshots are published by write, \texttt{fsync} and \texttt{os.replace}, so a gateway never reads a truncated file. Lowering the block threshold from $0.5$ to $0.15$ after data augmentation is an operating-point change, not a security fix; its false-positive cost is examined in Section~\ref{sec:eval-limits}.
 
-\paragraph{Claim--code mismatches.}
-The audit found that the original poisoning figure was drawn from hard-coded lists and not from a measurement (replaced by the experiment above); that the Byzantine argument was void at $K=2$ and the aggregator's window was keyed by time rather than peer (now keyed by client identity, with $f$ reported); and that three mutually inconsistent models were in circulation (a single model file now provides one provenance for the simulation, aggregator, gateway and profiler).
-
-\paragraph{Hardening.}
-The hardening pass addressed the following.
-\begin{itemize}
-  \item \textbf{Content-Length handling.} Reading the header with \texttt{int(headers['Content-Length'])} crashed the handler on a missing or non-numeric value. The header is now read with a default and a \texttt{ValueError} yields HTTP~400, in the gateway, the aggregator and the post-quantum aggregator.
-  \item \textbf{Slow-connection exhaustion.} Servers use \texttt{ThreadingHTTPServer} with a 5\,s per-connection timeout, so a Slowloris-style client holding sockets open cannot block legitimate traffic or exhaust the single-threaded loop.
-  \item \textbf{Race conditions.} Gateway request/block counters and the aggregator's rejection counters are now updated under locks, since threaded serving made unsynchronised increments lossy.
-  \item \textbf{Atomic model publication.} Global model snapshots are written to a temporary file, flushed and \texttt{fsync}ed, then moved into place with \texttt{os.replace}, so a gateway syncing mid-write never reads a truncated model.
-  \item \textbf{Block threshold.} Training-time data augmentation (JSON, form data, varied lengths, prose) shifted the model's intercept; the gateway's block threshold was lowered from 0.5 to 0.15 to compensate. This is an operating-point change, not a security fix, and the trade-off between false positives and recall at that threshold is not quantified (Section~\ref{sec:eval-limits}).
-\end{itemize}
-
-\subsection{Limitations and Discussion}
+\subsection{Limitations}
 \label{sec:sec-limits}
-
 \paragraph{Byzantine tolerance at deployed scale.}
-The physical cluster has two gateways, so by~\eqref{eq:security:byz-bound} its tolerance is $f=0$. The poisoning results come from a seven-node simulation, not hardware. The norm gate and authentication still apply at $K=2$, but neither can stop a compromised gateway that uploads plausible-norm, adversarially chosen weights.
+Two gateways give $f=0$ by~\eqref{eq:security:byz-bound}. The poisoning results come from simulation. Authentication and the norm gate still apply at $K=2$, but neither stops a compromised gateway that uploads plausible-norm weights chosen adversarially.
 
 \paragraph{Adaptive attacks.}
-Sign-flip poisoning is the simplest attack. Optimised attacks aware of the aggregation rule can defeat median-based defences~\cite{fang2020}, and we did not evaluate them. Likewise the classifier is a linear model over hashed $n$-gram and syntactic features and is evadable in principle by padding, entropy shaping or steering trigrams toward lightly weighted buckets; no adaptive input-space evaluation was done. The resilience shown concerns model poisoning, not evasion.
+Sign-flip poisoning is the weakest attack in the literature; optimised attacks can defeat median rules~\cite{fang2020} and were not evaluated. The classifier is linear over hashed trigrams and simple syntactic features, and padding, entropy shaping or steering trigrams toward lightly weighted buckets can plausibly evade it. No adaptive input-space evaluation was done, so the poisoning results say nothing about evasion.
 
 \paragraph{Authentication.}
-Symmetric HMAC keys mean a breach of the aggregator exposes every peer secret, and the scheme provides authenticity and freshness but not non-repudiation. Replay and rate-limit state is held in aggregator memory. Enrolment is a manual provisioning step, which is what bounds $f$ but is also an operational burden. The timestamp window assumes loosely synchronised clocks.
+Symmetric keys mean a breach of the aggregator exposes every peer secret, and the scheme offers no non-repudiation. Replay and rate-limit state live in aggregator memory and are lost on restart. Enrolment is manual, which bounds $f$ and also costs operator effort. The timestamp window assumes loosely synchronised clocks.
 
-\paragraph{Confidentiality.}
-HMAC authenticates updates; it does not encrypt them. ML-KEM-512~\cite{fips203} is benchmarked as a component and a post-quantum aggregator variant exists in the repository, but the live weight channel is still JSON over plain HTTP on a trusted network segment, so A2's ``store now, decrypt later'' capability is not yet neutralised. Differential privacy is specified but not implemented, so we report no $\epsilon$ and no measurement of gradient inversion.
+\paragraph{Confidentiality and privacy.}
+Live updates and global models travel as plain-HTTP JSON on a trusted network segment, and the ML-KEM exchange is a standalone benchmark (Section~\ref{sec:sys-pqc}). An observer of the link can read the weights, and a recorded exchange could be read later by a quantum-capable adversary; A2's recording capability is not neutralised. Differential privacy is not implemented, so no $\epsilon$ is reported and gradient inversion was not measured. The parameters an update carries are a function of a site's training data, and what that reveals is unquantified.
 
 \paragraph{Statistical scope.}
-The poisoning experiment is one seeded run with a single attack strength and timing. The attack tests assert designed status codes and were not run as a statistical study.
+The poisoning experiment in Section~\ref{sec:eval-byzantine} is a single seeded run. The attack tests assert designed status codes and were not run as a study. What the security analysis supports is narrow: authenticated, rate-limited, norm-checked updates from enrolled peers, and a median rule that resists a crude sign-flip when $K\ge 2f+1$.
