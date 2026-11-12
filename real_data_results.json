@@ -1,0 +1,2125 @@
+{
+  "quick_mode": false,
+  "thresholds": [
+    0.5,
+    0.15
+  ],
+  "threshold_note": "0.5 = convention used elsewhere in the paper; 0.15 = deployed BLOCK_THRESHOLD (continuous_waf.py). Neither was tuned on the data used here.",
+  "model_sha256": "e0abea7d8c9561183ee071d022078dedabb64620c55f9b43c7267abbb0d084d4",
+  "not_included": {
+    "Edge-IIoTset": "Not attempted: distributed through IEEE DataPort / Kaggle (account-gated as far as known, not a plain download), and its released tables are network-flow features rather than raw HTTP payload strings, so the payload featuriser would need a different pipeline. Listed as future work.",
+    "other_IoT_sets": "None cheaply downloadable with raw HTTP payloads were found."
+  },
+  "csic2010": {
+    "distinct_string_diagnostic": {
+      "normalTrafficTraining": {
+        "path": {
+          "n_distinct_strings": 28,
+          "n_distinct_scoring_>=0.15": 0,
+          "example_scores": {
+            "/tienda1/index.jsp": 0.0294,
+            "/tienda1/publico/anadir.jsp": 0.0109,
+            "/tienda1/publico/autenticar.jsp": 0.0106
+          }
+        },
+        "user-agent": {
+          "n_distinct_strings": 1,
+          "n_distinct_scoring_>=0.15": 1,
+          "example_scores": {
+            "Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.8 (like Gecko)": 0.9992
+          }
+        },
+        "cookie": {
+          "n_distinct_strings": 36000,
+          "n_distinct_scoring_>=0.15": 0,
+          "example_scores": {
+            "JSESSIONID=1F767F17239C9B670A39E9B10C3825F4": 0.0002,
+            "JSESSIONID=81761ACA043B0E6014CA42A4BCD06AB5": 0.0004,
+            "JSESSIONID=933185092E0B668B90676E0A2B0767AF": 0.0001
+          }
+        }
+      },
+      "normalTrafficTest": {
+        "path": {
+          "n_distinct_strings": 28,
+          "n_distinct_scoring_>=0.15": 0,
+          "example_scores": {
+            "/tienda1/index.jsp": 0.0294,
+            "/tienda1/publico/anadir.jsp": 0.0109,
+            "/tienda1/publico/autenticar.jsp": 0.0106
+          }
+        },
+        "user-agent": {
+          "n_distinct_strings": 1,
+          "n_distinct_scoring_>=0.15": 1,
+          "example_scores": {
+            "Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.8 (like Gecko)": 0.9992
+          }
+        },
+        "cookie": {
+          "n_distinct_strings": 36000,
+          "n_distinct_scoring_>=0.15": 0,
+          "example_scores": {
+            "JSESSIONID=EA414B3E327DED6875848530C864BD8F": 0.0003,
+            "JSESSIONID=54E25FF4B7F0E4E855B112F882E9EEA5": 0.0005,
+            "JSESSIONID=788887A0F479749C4CEEA1E268B4A501": 0.0005
+          }
+        }
+      },
+      "anomalousTrafficTest": {
+        "path": {
+          "n_distinct_strings": 1612,
+          "n_distinct_scoring_>=0.15": 261,
+          "example_scores": {
+            "/tienda1/publico/anadir.jsp": 0.0109,
+            "/asf-logo-wide.gif~": 0.0053,
+            "/tienda1/publico/autenticar.jsp": 0.0106
+          }
+        },
+        "user-agent": {
+          "n_distinct_strings": 1,
+          "n_distinct_scoring_>=0.15": 1,
+          "example_scores": {
+            "Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.8 (like Gecko)": 0.9992
+          }
+        },
+        "cookie": {
+          "n_distinct_strings": 25065,
+          "n_distinct_scoring_>=0.15": 0,
+          "example_scores": {
+            "JSESSIONID=B92A8B48B9008CD29F622A994E0F650D": 0.0005,
+            "JSESSIONID=AE29AEEBDE479D5E1A18B4108C8E3CE0": 0.0004,
+            "JSESSIONID=F563B5262843F12ECAE41815ABDEEA54": 0.0002
+          }
+        }
+      }
+    },
+    "provenance": {
+      "normalTrafficTraining": {
+        "url": "https://raw.githubusercontent.com/msudol/Web-Application-Attack-Datasets/master/OriginalDataSets/csic_2010/normalTrafficTraining.txt",
+        "sha256": "d51de812d9201ef2b173b6ae3e3e740c309047ac85545c06c51d6fb1ddbc1e63",
+        "parsed_requests": 36000
+      },
+      "normalTrafficTest": {
+        "url": "https://raw.githubusercontent.com/msudol/Web-Application-Attack-Datasets/master/OriginalDataSets/csic_2010/normalTrafficTest.txt",
+        "sha256": "f05dfc312d5d14fd1ed8371de27a9e4deab3dc09265f5d7f9df2643df8385089",
+        "parsed_requests": 36000
+      },
+      "anomalousTrafficTest": {
+        "url": "https://raw.githubusercontent.com/msudol/Web-Application-Attack-Datasets/master/OriginalDataSets/csic_2010/anomalousTrafficTest.txt",
+        "sha256": "12fa4f0d496ceb859bb2652abf7f0f0ed8c59e1d9ce501b8a9a0ef38a625c046",
+        "parsed_requests": 25065
+      }
+    },
+    "label_note": "CSIC 'anomalous' = all attack types in the dataset (SQLi, XSS, buffer overflow, CRLF, path traversal, info gathering, parameter tampering ...). Many are not payload-signature attacks; recall is NOT attack-family recall. Not stratified by sub-type (no sub-type labels in file).",
+    "model": "shipped fed_model.json",
+    "per_file": {
+      "normalTrafficTraining": {
+        "n_requests": 36000,
+        "gateway_all_contexts": {
+          "flag_rate@0.5": {
+            "k": 36000,
+            "n": 36000,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998933002749351,
+              1.0
+            ]
+          },
+          "flag_rate@0.15": {
+            "k": 36000,
+            "n": 36000,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998933002749351,
+              1.0
+            ]
+          }
+        },
+        "payload_contexts_only": {
+          "flag_rate@0.5": {
+            "k": 6017,
+            "n": 36000,
+            "rate": 0.1671388888888889,
+            "ci95_wilson": [
+              0.16332028591533138,
+              0.1710285242405271
+            ]
+          },
+          "flag_rate@0.15": {
+            "k": 6856,
+            "n": 36000,
+            "rate": 0.19044444444444444,
+            "ci95_wilson": [
+              0.18642142176037885,
+              0.19453352611385022
+            ]
+          }
+        },
+        "per_context_flag_rate@0.15": {
+          "path": {
+            "k": 0,
+            "n": 36000,
+            "rate": 0.0,
+            "ci95_wilson": [
+              0.0,
+              0.0001066997250648942
+            ]
+          },
+          "query": {
+            "k": 3426,
+            "n": 8000,
+            "rate": 0.42825,
+            "ci95_wilson": [
+              0.4174436512851217,
+              0.43912522434080287
+            ]
+          },
+          "user-agent": {
+            "k": 36000,
+            "n": 36000,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998933002749351,
+              1.0
+            ]
+          },
+          "referer": {
+            "k": 0,
+            "n": 0,
+            "rate": null,
+            "ci95_wilson": [
+              null,
+              null
+            ]
+          },
+          "cookie": {
+            "k": 0,
+            "n": 36000,
+            "rate": 0.0,
+            "ci95_wilson": [
+              0.0,
+              0.0001066997250648942
+            ]
+          },
+          "body": {
+            "k": 3430,
+            "n": 8000,
+            "rate": 0.42875,
+            "ci95_wilson": [
+              0.41794182936502644,
+              0.43962656629137953
+            ]
+          }
+        }
+      },
+      "normalTrafficTest": {
+        "n_requests": 36000,
+        "gateway_all_contexts": {
+          "flag_rate@0.5": {
+            "k": 36000,
+            "n": 36000,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998933002749351,
+              1.0
+            ]
+          },
+          "flag_rate@0.15": {
+            "k": 36000,
+            "n": 36000,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998933002749351,
+              1.0
+            ]
+          }
+        },
+        "payload_contexts_only": {
+          "flag_rate@0.5": {
+            "k": 6015,
+            "n": 36000,
+            "rate": 0.16708333333333333,
+            "ci95_wilson": [
+              0.16326524826101385,
+              0.17097246263925853
+            ]
+          },
+          "flag_rate@0.15": {
+            "k": 6903,
+            "n": 36000,
+            "rate": 0.19175,
+            "ci95_wilson": [
+              0.1877162439201794,
+              0.19584953646032313
+            ]
+          }
+        },
+        "per_context_flag_rate@0.15": {
+          "path": {
+            "k": 0,
+            "n": 36000,
+            "rate": 0.0,
+            "ci95_wilson": [
+              0.0,
+              0.0001066997250648942
+            ]
+          },
+          "query": {
+            "k": 3454,
+            "n": 8000,
+            "rate": 0.43175,
+            "ci95_wilson": [
+              0.42093113478185423,
+              0.44263438105743985
+            ]
+          },
+          "user-agent": {
+            "k": 36000,
+            "n": 36000,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998933002749351,
+              1.0
+            ]
+          },
+          "referer": {
+            "k": 0,
+            "n": 0,
+            "rate": null,
+            "ci95_wilson": [
+              null,
+              null
+            ]
+          },
+          "cookie": {
+            "k": 0,
+            "n": 36000,
+            "rate": 0.0,
+            "ci95_wilson": [
+              0.0,
+              0.0001066997250648942
+            ]
+          },
+          "body": {
+            "k": 3449,
+            "n": 8000,
+            "rate": 0.431125,
+            "ci95_wilson": [
+              0.4203083293518941,
+              0.4420077864492983
+            ]
+          }
+        }
+      },
+      "anomalousTrafficTest": {
+        "n_requests": 25065,
+        "gateway_all_contexts": {
+          "flag_rate@0.5": {
+            "k": 25065,
+            "n": 25065,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998467579770419,
+              1.0
+            ]
+          },
+          "flag_rate@0.15": {
+            "k": 25065,
+            "n": 25065,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998467579770419,
+              1.0
+            ]
+          }
+        },
+        "payload_contexts_only": {
+          "flag_rate@0.5": {
+            "k": 11266,
+            "n": 25065,
+            "rate": 0.4494713744264911,
+            "ci95_wilson": [
+              0.4433212512611735,
+              0.4556369838094092
+            ]
+          },
+          "flag_rate@0.15": {
+            "k": 13101,
+            "n": 25065,
+            "rate": 0.5226810293237583,
+            "ci95_wilson": [
+              0.516494376001994,
+              0.5288607312718898
+            ]
+          }
+        },
+        "per_context_flag_rate@0.15": {
+          "path": {
+            "k": 429,
+            "n": 24851,
+            "rate": 0.017262886805359947,
+            "ci95_wilson": [
+              0.01571648633957498,
+              0.018958512353637373
+            ]
+          },
+          "query": {
+            "k": 6249,
+            "n": 9609,
+            "rate": 0.6503278176709335,
+            "ci95_wilson": [
+              0.6407346119773693,
+              0.6598008717239331
+            ]
+          },
+          "user-agent": {
+            "k": 25065,
+            "n": 25065,
+            "rate": 1.0,
+            "ci95_wilson": [
+              0.9998467579770419,
+              1.0
+            ]
+          },
+          "referer": {
+            "k": 0,
+            "n": 0,
+            "rate": null,
+            "ci95_wilson": [
+              null,
+              null
+            ]
+          },
+          "cookie": {
+            "k": 0,
+            "n": 25065,
+            "rate": 0.0,
+            "ci95_wilson": [
+              0.0,
+              0.00015324202295809316
+            ]
+          },
+          "body": {
+            "k": 6423,
+            "n": 9977,
+            "rate": 0.6437806955998797,
+            "ci95_wilson": [
+              0.6343301181171102,
+              0.6531205914503075
+            ]
+          }
+        }
+      }
+    },
+    "normal_pooled": {
+      "n_requests": 72000,
+      "gateway_all_contexts": {
+        "flag_rate@0.5": {
+          "k": 72000,
+          "n": 72000,
+          "rate": 1.0,
+          "ci95_wilson": [
+            0.9999466472911078,
+            1.0
+          ]
+        },
+        "flag_rate@0.15": {
+          "k": 72000,
+          "n": 72000,
+          "rate": 1.0,
+          "ci95_wilson": [
+            0.9999466472911078,
+            1.0
+          ]
+        }
+      },
+      "payload_contexts_only": {
+        "flag_rate@0.5": {
+          "k": 12032,
+          "n": 72000,
+          "rate": 0.1671111111111111,
+          "ci95_wilson": [
+            0.16440376401067047,
+            0.1698539792595164
+          ]
+        },
+        "flag_rate@0.15": {
+          "k": 13759,
+          "n": 72000,
+          "rate": 0.19109722222222222,
+          "ci95_wilson": [
+            0.18824185972105004,
+            0.19398554632335194
+          ]
+        }
+      },
+      "per_context_flag_rate@0.15": {
+        "path": {
+          "k": 0,
+          "n": 72000,
+          "rate": 0.0,
+          "ci95_wilson": [
+            0.0,
+            5.3352708892132224e-05
+          ]
+        },
+        "query": {
+          "k": 6880,
+          "n": 16000,
+          "rate": 0.43,
+          "ci95_wilson": [
+            0.422346427081462,
+            0.43768717884975383
+          ]
+        },
+        "user-agent": {
+          "k": 72000,
+          "n": 72000,
+          "rate": 1.0,
+          "ci95_wilson": [
+            0.9999466472911078,
+            1.0
+          ]
+        },
+        "referer": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95_wilson": [
+            null,
+            null
+          ]
+        },
+        "cookie": {
+          "k": 0,
+          "n": 72000,
+          "rate": 0.0,
+          "ci95_wilson": [
+            0.0,
+            5.3352708892132224e-05
+          ]
+        },
+        "body": {
+          "k": 6879,
+          "n": 16000,
+          "rate": 0.4299375,
+          "ci95_wilson": [
+            0.42228407902803206,
+            0.4376245569084794
+          ]
+        }
+      }
+    },
+    "anomalous": {
+      "n_requests": 25065,
+      "gateway_all_contexts": {
+        "flag_rate@0.5": {
+          "k": 25065,
+          "n": 25065,
+          "rate": 1.0,
+          "ci95_wilson": [
+            0.9998467579770419,
+            1.0
+          ]
+        },
+        "flag_rate@0.15": {
+          "k": 25065,
+          "n": 25065,
+          "rate": 1.0,
+          "ci95_wilson": [
+            0.9998467579770419,
+            1.0
+          ]
+        }
+      },
+      "payload_contexts_only": {
+        "flag_rate@0.5": {
+          "k": 11266,
+          "n": 25065,
+          "rate": 0.4494713744264911,
+          "ci95_wilson": [
+            0.4433212512611735,
+            0.4556369838094092
+          ]
+        },
+        "flag_rate@0.15": {
+          "k": 13101,
+          "n": 25065,
+          "rate": 0.5226810293237583,
+          "ci95_wilson": [
+            0.516494376001994,
+            0.5288607312718898
+          ]
+        }
+      },
+      "per_context_flag_rate@0.15": {
+        "path": {
+          "k": 429,
+          "n": 24851,
+          "rate": 0.017262886805359947,
+          "ci95_wilson": [
+            0.01571648633957498,
+            0.018958512353637373
+          ]
+        },
+        "query": {
+          "k": 6249,
+          "n": 9609,
+          "rate": 0.6503278176709335,
+          "ci95_wilson": [
+            0.6407346119773693,
+            0.6598008717239331
+          ]
+        },
+        "user-agent": {
+          "k": 25065,
+          "n": 25065,
+          "rate": 1.0,
+          "ci95_wilson": [
+            0.9998467579770419,
+            1.0
+          ]
+        },
+        "referer": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95_wilson": [
+            null,
+            null
+          ]
+        },
+        "cookie": {
+          "k": 0,
+          "n": 25065,
+          "rate": 0.0,
+          "ci95_wilson": [
+            0.0,
+            0.00015324202295809316
+          ]
+        },
+        "body": {
+          "k": 6423,
+          "n": 9977,
+          "rate": 0.6437806955998797,
+          "ci95_wilson": [
+            0.6343301181171102,
+            0.6531205914503075
+          ]
+        }
+      }
+    },
+    "auc_gateway_all_contexts": {
+      "auc": 0.5858161840326261,
+      "ci95_bootstrap": [
+        0.5828496092866878,
+        0.588605232970665
+      ],
+      "oracle_thr_at_1pct_fpr": 0.9999999996884654,
+      "recall_at_oracle_thr": {
+        "k": 1971,
+        "n": 25065,
+        "rate": 0.07863554757630162,
+        "ci95_wilson": [
+          0.07536742268813347,
+          0.08203281394665386
+        ]
+      }
+    },
+    "auc_payload_contexts_only": {
+      "auc": 0.6946346404902809,
+      "ci95_bootstrap": [
+        0.6903785996478601,
+        0.6984782036635302
+      ],
+      "oracle_thr_at_1pct_fpr": 0.9999999996884654,
+      "recall_at_oracle_thr": {
+        "k": 1971,
+        "n": 25065,
+        "rate": 0.07863554757630162,
+        "ci95_wilson": [
+          0.07536742268813347,
+          0.08203281394665386
+        ]
+      }
+    }
+  },
+  "loco": {
+    "note": "pooled centralised training with the shipped featuriser, augmentation and SGD hyper-parameters; held-out strings exactly de-duplicated from training within their family; recall/FPR use ONE random augmentation per held-out payload per seed; bootstrap CI over payloads of the seed-averaged outcome. AUC = held-out vs in-distribution test (30% splits) of the opposite class, mean and min/max over seeds.",
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "epochs": 600,
+    "folds": {
+      "(none: in-distribution reference)": {
+        "held_out_label": "attack",
+        "n_payloads": 1000,
+        "n_files_held_out": 0,
+        "recall@0.5": {
+          "mean": 0.8289999999999998,
+          "ci95_bootstrap": [
+            0.8153333333333334,
+            0.8423333333333333
+          ],
+          "per_seed": [
+            0.813,
+            0.853,
+            0.821
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.941,
+          "ci95_bootstrap": [
+            0.9326666666666666,
+            0.949
+          ],
+          "per_seed": [
+            0.931,
+            0.955,
+            0.937
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.001,
+        "ref_benign_fpr@0.15": 0.10099999999999999,
+        "auc_vs_other_class": {
+          "mean": 0.9747718333333334,
+          "min": 0.9717535,
+          "max": 0.9798655000000001
+        }
+      },
+      "Fuzzing/Databases/SQLi/Generic-SQLi.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 260,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.38717948717948714,
+          "ci95_bootstrap": [
+            0.33714743589743584,
+            0.43846153846153846
+          ],
+          "per_seed": [
+            0.40384615384615385,
+            0.3923076923076923,
+            0.36538461538461536
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.6346153846153846,
+          "ci95_bootstrap": [
+            0.5807692307692308,
+            0.6846153846153846
+          ],
+          "per_seed": [
+            0.6423076923076924,
+            0.6576923076923077,
+            0.6038461538461538
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0,
+        "ref_benign_fpr@0.15": 0.050499999999999996,
+        "auc_vs_other_class": {
+          "mean": 0.8446429487179486,
+          "min": 0.835898076923077,
+          "max": 0.8563384615384615
+        }
+      },
+      "Fuzzing/Databases/SQLi/Generic-BlindSQLi.fuzzdb.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 42,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.9285714285714286,
+          "ci95_bootstrap": [
+            0.8412698412698413,
+            0.9841269841269842
+          ],
+          "per_seed": [
+            0.9523809523809523,
+            0.9047619047619048,
+            0.9285714285714286
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.984126984126984,
+          "ci95_bootstrap": [
+            0.9523809523809523,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            0.9761904761904762,
+            0.9761904761904762
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0015000000000000002,
+        "ref_benign_fpr@0.15": 0.08700000000000001,
+        "auc_vs_other_class": {
+          "mean": 0.9941904761904761,
+          "min": 0.9870833333333333,
+          "max": 0.9994166666666666
+        }
+      },
+      "Fuzzing/Databases/SQLi/MSSQL.fuzzdb.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 17,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.8235294117647058,
+          "ci95_bootstrap": [
+            0.6666666666666666,
+            0.9607843137254901
+          ],
+          "per_seed": [
+            0.8235294117647058,
+            0.8235294117647058,
+            0.8235294117647058
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.980392156862745,
+          "ci95_bootstrap": [
+            0.9411764705882353,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            0.9411764705882353,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.001,
+        "ref_benign_fpr@0.15": 0.08716666666666666,
+        "auc_vs_other_class": {
+          "mean": 0.9960392156862744,
+          "min": 0.9890882352941177,
+          "max": 0.9997058823529412
+        }
+      },
+      "Fuzzing/Databases/SQLi/MySQL.fuzzdb.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 6,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.611111111111111,
+          "ci95_bootstrap": [
+            0.27777777777777773,
+            0.9444444444444443
+          ],
+          "per_seed": [
+            0.5,
+            0.6666666666666666,
+            0.6666666666666666
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.8333333333333331,
+          "ci95_bootstrap": [
+            0.611111111111111,
+            1.0
+          ],
+          "per_seed": [
+            0.8333333333333334,
+            1.0,
+            0.6666666666666666
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0006666666666666666,
+        "ref_benign_fpr@0.15": 0.09716666666666667,
+        "auc_vs_other_class": {
+          "mean": 0.9511111111111111,
+          "min": 0.90025,
+          "max": 0.991
+        }
+      },
+      "Fuzzing/Databases/SQLi/MySQL-SQLi-Login-Bypass.fuzzdb.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 8,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.7083333333333333,
+          "ci95_bootstrap": [
+            0.45833333333333326,
+            0.9166666666666666
+          ],
+          "per_seed": [
+            0.75,
+            0.625,
+            0.75
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.875,
+          "ci95_bootstrap": [
+            0.7083333333333333,
+            1.0
+          ],
+          "per_seed": [
+            0.875,
+            0.875,
+            0.875
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0006666666666666666,
+        "ref_benign_fpr@0.15": 0.09916666666666667,
+        "auc_vs_other_class": {
+          "mean": 0.9424583333333333,
+          "min": 0.8883749999999999,
+          "max": 0.9848125
+        }
+      },
+      "Fuzzing/Databases/SQLi/Oracle.fuzzdb.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 55,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.9575757575757574,
+          "ci95_bootstrap": [
+            0.915151515151515,
+            0.9880303030303023
+          ],
+          "per_seed": [
+            0.9454545454545454,
+            0.9818181818181818,
+            0.9454545454545454
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.9939393939393939,
+          "ci95_bootstrap": [
+            0.9818181818181817,
+            1.0
+          ],
+          "per_seed": [
+            0.9818181818181818,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0018333333333333333,
+        "ref_benign_fpr@0.15": 0.07366666666666667,
+        "auc_vs_other_class": {
+          "mean": 0.9983848484848484,
+          "min": 0.9963545454545455,
+          "max": 0.9999181818181818
+        }
+      },
+      "Fuzzing/Databases/SQLi/SQLi-Polyglots.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 3,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "recall@0.15": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.001,
+        "ref_benign_fpr@0.15": 0.09449999999999999,
+        "auc_vs_other_class": {
+          "mean": 1.0,
+          "min": 0.9999999999999999,
+          "max": 1.0
+        }
+      },
+      "Fuzzing/Databases/SQLi/quick-SQLi.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 77,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.5064935064935064,
+          "ci95_bootstrap": [
+            0.41547619047619044,
+            0.5974025974025973
+          ],
+          "per_seed": [
+            0.45454545454545453,
+            0.5324675324675324,
+            0.5324675324675324
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.8658008658008659,
+          "ci95_bootstrap": [
+            0.8051948051948052,
+            0.9177489177489178
+          ],
+          "per_seed": [
+            0.8311688311688312,
+            0.8571428571428571,
+            0.9090909090909091
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.00016666666666666666,
+        "ref_benign_fpr@0.15": 0.06816666666666667,
+        "auc_vs_other_class": {
+          "mean": 0.9545432900432901,
+          "min": 0.9483376623376625,
+          "max": 0.9599025974025974
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqli.auth.bypass.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 96,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.5972222222222222,
+          "ci95_bootstrap": [
+            0.5208333333333334,
+            0.6701388888888888
+          ],
+          "per_seed": [
+            0.6979166666666666,
+            0.6458333333333334,
+            0.4479166666666667
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.875,
+          "ci95_bootstrap": [
+            0.8159722222222223,
+            0.9236111111111112
+          ],
+          "per_seed": [
+            0.8854166666666666,
+            0.90625,
+            0.8333333333333334
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0003333333333333333,
+        "ref_benign_fpr@0.15": 0.076,
+        "auc_vs_other_class": {
+          "mean": 0.9501093749999999,
+          "min": 0.9392604166666666,
+          "max": 0.9695312500000001
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqlmap-risk-classified/High-Risk-Payloads/boolean_blind.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 9,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "recall@0.15": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0008333333333333334,
+        "ref_benign_fpr@0.15": 0.09949999999999999,
+        "auc_vs_other_class": {
+          "mean": 0.9998518518518518,
+          "min": 0.9996666666666666,
+          "max": 0.9999444444444444
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqlmap-risk-classified/High-Risk-Payloads/error_based.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 23,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "recall@0.15": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0013333333333333333,
+        "ref_benign_fpr@0.15": 0.09633333333333334,
+        "auc_vs_other_class": {
+          "mean": 1.0,
+          "min": 0.9999999999999999,
+          "max": 1.0
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqlmap-risk-classified/High-Risk-Payloads/time_blind.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 18,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "recall@0.15": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0006666666666666666,
+        "ref_benign_fpr@0.15": 0.08949999999999998,
+        "auc_vs_other_class": {
+          "mean": 0.9999722222222222,
+          "min": 0.9999166666666668,
+          "max": 1.0
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqlmap-risk-classified/Low-Risk-Payloads/boolean_blind.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 56,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.8571428571428571,
+          "ci95_bootstrap": [
+            0.7797619047619049,
+            0.9285714285714286
+          ],
+          "per_seed": [
+            0.8214285714285714,
+            0.8928571428571429,
+            0.8571428571428571
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.9821428571428571,
+          "ci95_bootstrap": [
+            0.9583333333333334,
+            1.0
+          ],
+          "per_seed": [
+            0.9464285714285714,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0015000000000000002,
+        "ref_benign_fpr@0.15": 0.0815,
+        "auc_vs_other_class": {
+          "mean": 0.9929791666666666,
+          "min": 0.9847678571428571,
+          "max": 0.9971517857142856
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqlmap-risk-classified/Low-Risk-Payloads/error_based.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 52,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "recall@0.15": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0013333333333333333,
+        "ref_benign_fpr@0.15": 0.08333333333333333,
+        "auc_vs_other_class": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqlmap-risk-classified/Low-Risk-Payloads/inline_query.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 8,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "recall@0.15": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0008333333333333334,
+        "ref_benign_fpr@0.15": 0.09283333333333334,
+        "auc_vs_other_class": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqlmap-risk-classified/Low-Risk-Payloads/stacked_queries.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 9,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.9629629629629629,
+          "ci95_bootstrap": [
+            0.8888888888888888,
+            1.0
+          ],
+          "per_seed": [
+            0.8888888888888888,
+            1.0,
+            1.0
+          ]
+        },
+        "recall@0.15": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0008333333333333334,
+        "ref_benign_fpr@0.15": 0.09416666666666666,
+        "auc_vs_other_class": {
+          "mean": 0.9980370370370371,
+          "min": 0.994388888888889,
+          "max": 0.9998888888888888
+        }
+      },
+      "Fuzzing/Databases/SQLi/sqlmap-risk-classified/Low-Risk-Payloads/time_blind.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 21,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.9523809523809523,
+          "ci95_bootstrap": [
+            0.8571428571428571,
+            1.0
+          ],
+          "per_seed": [
+            0.9523809523809523,
+            0.9523809523809523,
+            0.9523809523809523
+          ]
+        },
+        "recall@0.15": {
+          "mean": 1.0,
+          "ci95_bootstrap": [
+            1.0,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0013333333333333333,
+        "ref_benign_fpr@0.15": 0.10099999999999999,
+        "auc_vs_other_class": {
+          "mean": 0.9979126984126983,
+          "min": 0.9961666666666665,
+          "max": 0.9998571428571428
+        }
+      },
+      "Fuzzing/XSS/robot-friendly/XSS-BruteLogic.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 113,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.5339233038348082,
+          "ci95_bootstrap": [
+            0.45427728613569324,
+            0.6106194690265486
+          ],
+          "per_seed": [
+            0.5398230088495575,
+            0.6017699115044248,
+            0.46017699115044247
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.887905604719764,
+          "ci95_bootstrap": [
+            0.84070796460177,
+            0.9292035398230089
+          ],
+          "per_seed": [
+            0.911504424778761,
+            0.8849557522123894,
+            0.8672566371681416
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0006666666666666666,
+        "ref_benign_fpr@0.15": 0.074,
+        "auc_vs_other_class": {
+          "mean": 0.9566120943952802,
+          "min": 0.9492035398230089,
+          "max": 0.9683008849557522
+        }
+      },
+      "Fuzzing/XSS/robot-friendly/XSS-Bypass-Strings-BruteLogic.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 17,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.5490196078431372,
+          "ci95_bootstrap": [
+            0.37254901960784315,
+            0.7254901960784313
+          ],
+          "per_seed": [
+            0.5882352941176471,
+            0.5294117647058824,
+            0.5294117647058824
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.9019607843137255,
+          "ci95_bootstrap": [
+            0.7450980392156863,
+            1.0
+          ],
+          "per_seed": [
+            0.8823529411764706,
+            0.9411764705882353,
+            0.8823529411764706
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0008333333333333334,
+        "ref_benign_fpr@0.15": 0.11349999999999999,
+        "auc_vs_other_class": {
+          "mean": 0.9628529411764707,
+          "min": 0.9402647058823529,
+          "max": 0.9815
+        }
+      },
+      "Fuzzing/XSS/robot-friendly/XSS-Jhaddix.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 107,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.9158878504672897,
+          "ci95_bootstrap": [
+            0.866043613707165,
+            0.9595015576323986
+          ],
+          "per_seed": [
+            0.9252336448598131,
+            0.9252336448598131,
+            0.897196261682243
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.9657320872274144,
+          "ci95_bootstrap": [
+            0.9313862928348908,
+            0.9937694704049844
+          ],
+          "per_seed": [
+            0.9719626168224299,
+            0.9719626168224299,
+            0.9532710280373832
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.001,
+        "ref_benign_fpr@0.15": 0.09216666666666667,
+        "auc_vs_other_class": {
+          "mean": 0.9705560747663551,
+          "min": 0.9690280373831774,
+          "max": 0.9715140186915887
+        }
+      },
+      "Fuzzing/XSS/robot-friendly/XSS-RSNAKE.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 73,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.958904109589041,
+          "ci95_bootstrap": [
+            0.9132420091324202,
+            0.9908675799086759
+          ],
+          "per_seed": [
+            0.9452054794520548,
+            0.9726027397260274,
+            0.958904109589041
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.9954337899543377,
+          "ci95_bootstrap": [
+            0.9863013698630136,
+            1.0
+          ],
+          "per_seed": [
+            1.0,
+            0.9863013698630136,
+            1.0
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.001,
+        "ref_benign_fpr@0.15": 0.07966666666666666,
+        "auc_vs_other_class": {
+          "mean": 0.9987077625570776,
+          "min": 0.9981575342465754,
+          "max": 0.9990547945205479
+        }
+      },
+      "Fuzzing/XSS/robot-friendly/XSS-Somdev.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 22,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.7272727272727273,
+          "ci95_bootstrap": [
+            0.5757575757575757,
+            0.8636363636363636
+          ],
+          "per_seed": [
+            0.7727272727272727,
+            0.7727272727272727,
+            0.6363636363636364
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.9242424242424242,
+          "ci95_bootstrap": [
+            0.8484848484848484,
+            0.9848484848484848
+          ],
+          "per_seed": [
+            0.9545454545454546,
+            0.9090909090909091,
+            0.9090909090909091
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0013333333333333333,
+        "ref_benign_fpr@0.15": 0.09566666666666668,
+        "auc_vs_other_class": {
+          "mean": 0.9734999999999999,
+          "min": 0.9582272727272726,
+          "max": 0.9886363636363635
+        }
+      },
+      "Fuzzing/XSS/robot-friendly/XSS-Vectors-Mario.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 137,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.9562043795620438,
+          "ci95_bootstrap": [
+            0.9294403892944039,
+            0.9805352798053527
+          ],
+          "per_seed": [
+            0.9708029197080292,
+            0.9416058394160584,
+            0.9562043795620438
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.9902676399026765,
+          "ci95_bootstrap": [
+            0.9781021897810219,
+            1.0
+          ],
+          "per_seed": [
+            0.9927007299270073,
+            0.9927007299270073,
+            0.9854014598540146
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.001,
+        "ref_benign_fpr@0.15": 0.06766666666666667,
+        "auc_vs_other_class": {
+          "mean": 0.9976861313868614,
+          "min": 0.995521897810219,
+          "max": 0.9987737226277372
+        }
+      },
+      "Fuzzing/XSS/robot-friendly/XSS-EnDe-xssAttacks.txt": {
+        "held_out_label": "attack",
+        "n_payloads": 109,
+        "n_files_held_out": 1,
+        "recall@0.5": {
+          "mean": 0.9785932721712537,
+          "ci95_bootstrap": [
+            0.9541284403669725,
+            0.9969418960244647
+          ],
+          "per_seed": [
+            0.9541284403669725,
+            0.9908256880733946,
+            0.9908256880733946
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.9938837920489296,
+          "ci95_bootstrap": [
+            0.9816513761467889,
+            1.0
+          ],
+          "per_seed": [
+            0.9908256880733946,
+            1.0,
+            0.9908256880733946
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0013333333333333333,
+        "ref_benign_fpr@0.15": 0.09866666666666667,
+        "auc_vs_other_class": {
+          "mean": 0.9988929663608563,
+          "min": 0.997848623853211,
+          "max": 0.9998256880733946
+        }
+      },
+      "Discovery/Web-Content/raft-small-words.txt": {
+        "held_out_label": "benign",
+        "n_payloads": 3000,
+        "n_files_held_out": 1,
+        "fpr@0.5": {
+          "mean": 0.008777777777777777,
+          "ci95_bootstrap": [
+            0.0067777777777777775,
+            0.011
+          ],
+          "per_seed": [
+            0.01,
+            0.010333333333333333,
+            0.006
+          ]
+        },
+        "fpr@0.15": {
+          "mean": 0.25188888888888883,
+          "ci95_bootstrap": [
+            0.24144166666666664,
+            0.2624444444444444
+          ],
+          "per_seed": [
+            0.21766666666666667,
+            0.3413333333333333,
+            0.19666666666666666
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0013333333333333333,
+        "ref_benign_fpr@0.15": 0.09933333333333334,
+        "auc_vs_other_class": {
+          "mean": 0.9648657777777778,
+          "min": 0.959306,
+          "max": 0.9745066666666666
+        }
+      },
+      "Discovery/Web-Content/api/api-seen-in-wild.txt": {
+        "held_out_label": "benign",
+        "n_payloads": 3000,
+        "n_files_held_out": 1,
+        "fpr@0.5": {
+          "mean": 0.010222222222222221,
+          "ci95_bootstrap": [
+            0.007666666666666666,
+            0.012888888888888889
+          ],
+          "per_seed": [
+            0.007333333333333333,
+            0.014,
+            0.009333333333333334
+          ]
+        },
+        "fpr@0.15": {
+          "mean": 0.2291111111111111,
+          "ci95_bootstrap": [
+            0.21833333333333332,
+            0.2402222222222222
+          ],
+          "per_seed": [
+            0.20566666666666666,
+            0.283,
+            0.19866666666666666
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0005,
+        "ref_benign_fpr@0.15": 0.08800000000000001,
+        "auc_vs_other_class": {
+          "mean": 0.9633379999999999,
+          "min": 0.9575636666666666,
+          "max": 0.9744266666666667
+        }
+      },
+      "Discovery/Web-Content/api/api-endpoints.txt": {
+        "held_out_label": "benign",
+        "n_payloads": 295,
+        "n_files_held_out": 1,
+        "fpr@0.5": {
+          "mean": 0.0022598870056497176,
+          "ci95_bootstrap": [
+            0.0,
+            0.005649717514124293
+          ],
+          "per_seed": [
+            0.006779661016949152,
+            0.0,
+            0.0
+          ]
+        },
+        "fpr@0.15": {
+          "mean": 0.23163841807909608,
+          "ci95_bootstrap": [
+            0.20112994350282484,
+            0.2644067796610169
+          ],
+          "per_seed": [
+            0.33220338983050846,
+            0.2542372881355932,
+            0.10847457627118644
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0008333333333333334,
+        "ref_benign_fpr@0.15": 0.09649999999999999,
+        "auc_vs_other_class": {
+          "mean": 0.9607118644067795,
+          "min": 0.9528406779661017,
+          "max": 0.970986440677966
+        }
+      },
+      "Discovery/Web-Content/graphql.txt": {
+        "held_out_label": "benign",
+        "n_payloads": 106,
+        "n_files_held_out": 1,
+        "fpr@0.5": {
+          "mean": 0.0,
+          "ci95_bootstrap": [
+            0.0,
+            0.0
+          ],
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fpr@0.15": {
+          "mean": 0.23270440251572325,
+          "ci95_bootstrap": [
+            0.18553459119496854,
+            0.279874213836478
+          ],
+          "per_seed": [
+            0.2169811320754717,
+            0.27358490566037735,
+            0.20754716981132076
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0013333333333333333,
+        "ref_benign_fpr@0.15": 0.09466666666666668,
+        "auc_vs_other_class": {
+          "mean": 0.9578113207547169,
+          "min": 0.9518962264150943,
+          "max": 0.9613773584905659
+        }
+      },
+      "FAMILY:sqli": {
+        "held_out_label": "attack",
+        "n_payloads": 681,
+        "n_files_held_out": 17,
+        "recall@0.5": {
+          "mean": 0.39696524718551157,
+          "ci95_bootstrap": [
+            0.36268967205090547,
+            0.43073910915320607
+          ],
+          "per_seed": [
+            0.36123348017621143,
+            0.4185022026431718,
+            0.4111600587371512
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.6113558492413118,
+          "ci95_bootstrap": [
+            0.5790381791483113,
+            0.6421928536465981
+          ],
+          "per_seed": [
+            0.5580029368575624,
+            0.6461086637298091,
+            0.6299559471365639
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0,
+        "ref_benign_fpr@0.15": 0.0155,
+        "auc_vs_other_class": {
+          "mean": 0.8613920704845816,
+          "min": 0.847928046989721,
+          "max": 0.868175477239354
+        }
+      },
+      "FAMILY:xss": {
+        "held_out_label": "attack",
+        "n_payloads": 523,
+        "n_files_held_out": 7,
+        "recall@0.5": {
+          "mean": 0.6182281708094327,
+          "ci95_bootstrap": [
+            0.5812460165710644,
+            0.655831739961759
+          ],
+          "per_seed": [
+            0.5889101338432122,
+            0.6233269598470363,
+            0.6424474187380497
+          ]
+        },
+        "recall@0.15": {
+          "mean": 0.838750796685787,
+          "ci95_bootstrap": [
+            0.8119821542383683,
+            0.8636073932441044
+          ],
+          "per_seed": [
+            0.8183556405353728,
+            0.8508604206500956,
+            0.847036328871893
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0023333333333333335,
+        "ref_benign_fpr@0.15": 0.11266666666666665,
+        "auc_vs_other_class": {
+          "mean": 0.9208068833652007,
+          "min": 0.9188451242829827,
+          "max": 0.9242017208413003
+        }
+      },
+      "FAMILY:web": {
+        "held_out_label": "benign",
+        "n_payloads": 3000,
+        "n_files_held_out": 1,
+        "fpr@0.5": {
+          "mean": 0.008777777777777777,
+          "ci95_bootstrap": [
+            0.0067777777777777775,
+            0.011
+          ],
+          "per_seed": [
+            0.01,
+            0.010333333333333333,
+            0.006
+          ]
+        },
+        "fpr@0.15": {
+          "mean": 0.25188888888888883,
+          "ci95_bootstrap": [
+            0.24144166666666664,
+            0.2624444444444444
+          ],
+          "per_seed": [
+            0.21766666666666667,
+            0.3413333333333333,
+            0.19666666666666666
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.0013333333333333333,
+        "ref_benign_fpr@0.15": 0.09933333333333334,
+        "auc_vs_other_class": {
+          "mean": 0.9648657777777778,
+          "min": 0.959306,
+          "max": 0.9745066666666666
+        }
+      },
+      "FAMILY:api": {
+        "held_out_label": "benign",
+        "n_payloads": 3000,
+        "n_files_held_out": 3,
+        "fpr@0.5": {
+          "mean": 0.004,
+          "ci95_bootstrap": [
+            0.0027777777777777775,
+            0.0054444444444444445
+          ],
+          "per_seed": [
+            0.0036666666666666666,
+            0.0033333333333333335,
+            0.005
+          ]
+        },
+        "fpr@0.15": {
+          "mean": 0.19355555555555554,
+          "ci95_bootstrap": [
+            0.18321944444444443,
+            0.20411111111111108
+          ],
+          "per_seed": [
+            0.17766666666666667,
+            0.23133333333333334,
+            0.17166666666666666
+          ]
+        },
+        "ref_benign_fpr@0.5": 0.001,
+        "ref_benign_fpr@0.15": 0.09233333333333334,
+        "auc_vs_other_class": {
+          "mean": 0.9615307222222222,
+          "min": 0.9533106666666666,
+          "max": 0.9744941666666667
+        }
+      }
+    }
+  },
+  "synthetic_benign": {
+    "note": "synthetic, generated deterministically (seed 2024) by synth_benign(); each string scored as ONE context with the shipped model. 'hard_negatives_*' (SQL words / markup / operators in prose) are reported separately and excluded from the headline aggregate.",
+    "model": "shipped fed_model.json",
+    "categories": {
+      "names_with_apostrophes": {
+        "n": 500,
+        "fpr@0.5": {
+          "k": 23,
+          "n": 500,
+          "rate": 0.046,
+          "ci95_wilson": [
+            0.030844883399787512,
+            0.06807827022627275
+          ]
+        },
+        "fpr@0.15": {
+          "k": 134,
+          "n": 500,
+          "rate": 0.268,
+          "ci95_wilson": [
+            0.23105333049086763,
+            0.30848449250747156
+          ]
+        },
+        "examples": [
+          "Ali D'Arcy",
+          "Ali Hawai'i",
+          "Ali Ma'at"
+        ],
+        "highest_scoring": [
+          "Dear Aoife Rock 'n' Roll, your order #39100 has shipped",
+          "Dear Jean-Luc Rock 'n' Roll, your order #51424 has shipped",
+          "Dear Noor Rock 'n' Roll, your order #89024 has shipped"
+        ]
+      },
+      "search_text": {
+        "n": 500,
+        "fpr@0.5": {
+          "k": 5,
+          "n": 500,
+          "rate": 0.01,
+          "ci95_wilson": [
+            0.004278690781520357,
+            0.023193435378764938
+          ]
+        },
+        "fpr@0.15": {
+          "k": 79,
+          "n": 500,
+          "rate": 0.158,
+          "ci95_wilson": [
+            0.1286522063728175,
+            0.1925630327023204
+          ]
+        },
+        "examples": [
+          "\"account how train windows\"",
+          "\"account menu reset reset hours\"",
+          "\"account weather operations is and recipe restaurant examples\""
+        ],
+        "highest_scoring": [
+          "recipe windows used used select scores sign -laptop 2024",
+          "nearest capital station drop select the pharmacy nearest -what 2024",
+          "for nearest for scores pizza pharmacy australia for -create 2024"
+        ]
+      },
+      "json_bodies": {
+        "n": 500,
+        "fpr@0.5": {
+          "k": 482,
+          "n": 500,
+          "rate": 0.964,
+          "ci95_wilson": [
+            0.943815226738503,
+            0.9771091272648186
+          ]
+        },
+        "fpr@0.15": {
+          "k": 490,
+          "n": 500,
+          "rate": 0.98,
+          "ci95_wilson": [
+            0.9635794314459021,
+            0.9891009347644306
+          ]
+        },
+        "examples": [
+          "{\"address\": 361656, \"page\": {\"status\": 788548, \"page\": [35, 48, 71], \"count\": 240477}, \"created_at\": false, \"unit\": \"vegetarian tap weather table lasagne weather\", \"device\": 94.56}",
+          "{\"address\": 432203, \"sort\": [98, 4, 18], \"device\": true}",
+          "{\"address\": 878403, \"unit\": [58, 72, 87], \"device\": {\"price\": [60, 64, 13], \"created_at\": {\"device\": [1, 48, 78], \"lang\": true, \"price\": 65692, \"address\": \"bread tap station two best\"}, \"id\": [64, 39, 19]}}"
+        ],
+        "highest_scoring": [
+          "{\"address\": 361656, \"page\": {\"status\": 788548, \"page\": [35, 48, 71], \"count\": 240477}, \"created_at\": false, \"unit\": \"vegetarian tap weather table lasagne weather\", \"device\": 94.56}",
+          "{\"page\":false,\"count\":null,\"status\":{\"unit\":[98,66,93],\"sort\":true,\"created_at\":null,\"lang\":\"with insert how restaurant what is\",\"items\":\"pool password leaking nearest capital an\"},\"email\":675129}",
+          "{\"email\": [45, 30, 84], \"sort\": 10.5, \"value\": {\"user\": true, \"price\": {\"status\": 36.03, \"items\": \"driver cheap best create the an\", \"value\": \"station sourdough\", \"limit\": \"fix train australia list with cheap\"}}, \"status\": 1.03, \"address\": true}"
+        ]
+      },
+      "base64_and_jwt": {
+        "n": 500,
+        "fpr@0.5": {
+          "k": 10,
+          "n": 500,
+          "rate": 0.02,
+          "ci95_wilson": [
+            0.010899065235569357,
+            0.03642056855409787
+          ]
+        },
+        "fpr@0.15": {
+          "k": 24,
+          "n": 500,
+          "rate": 0.048,
+          "ci95_wilson": [
+            0.03246497509125218,
+            0.07042768006068446
+          ]
+        },
+        "examples": [
+          "+J0HFpngWkyThKVtbraBW78cwlc+cr2w/rh8vyVGs8hhGJpDyfRzPQoch5tgImIwUSbHACaJt5XUnnAWDUHnLOJu5bDfbaIPP/XPUiz6QCaRO/4etXVVFhiufFKliHQIKZmyAp2O97C+/UlcEqJKRaWZ8iqb4tGvYcWMXkxi1/k7zeSO",
+          "+LJtwqQB9wTlpnGcL8X2cezTPC+xWFW31SGPa0FEULcuRr2okthP+O5mmiE6Zf0oYctLomN51njzzzItGmKSpsJvSJL/eT7E01eNPd/tO9tdhCvrZuKCK4exPd7Yr/486Xn/BRPKKUqU8MmIX+wh+qaRlfcffr7MU+IH7GiuCEvtAFPyYwB6lc3RTDjfsspkUty7Ttwu9ZSTQrYk8SAVPxf6fYYyZtr5beI63m1d7dqXNXFaX7uM2DXmeZDbFzEE3XEI80YYcNet7mTPHtdz4OG+ZoHdXWc=",
+          "/BjCb/r3A2bS3eWroS3EOeufXbP1EOEBYNG2wkslIjy5Jc7BikYgcz4n4Jg+fPiL8aYXh2wW5UjbyfsHBqsOKhDtTWEy/3pbn5A/kQxirqpiviUb/RpTaQ6/Rprt12Y6mDx5rctcUZQWnRt/EidS9Q=="
+        ],
+        "highest_scoring": [
+          "BNyLd6Lt8BMvGcUD17i9VAFqb0tW//cOu5KhaaG+ph9+KKQ0VVFxK3ksGYkHB+uHNMDu7b7hOk6BL/miuIfzWxmzrgVUzLON+93KNsYbUkDVT/3zouCbTFyHNnMxkpmbqN09oG4NUxx4x2ZWOXxeUhAMuHYxFv8US7dpxSihTIQld3IN6sKUtcNxjnVF1m7vJRQRH6UvCrDz3cov9/UCCYLDggQQvvwwW1asppbrZHU2/oImZXFk6B82hBKHs6BlMhrQN+QSqe7T8/IdxUi+xXyIPg==",
+          "7+43kd+o/aHZb9KYQFDf3sJInBWNpHSJ7EqbEPT1/g0V+Ge1HqRJ6qqCeo7ZK/svL9cl4z8wj20/C+Z2UOJxzTC/5cg89JUQYOpJr+eZV+2+52un70EytPEbPmIYZTJhida1IaMhhyf5H7eDwS/CALb8u3QXDQODnsjlXSbNS7LTu72oVYXq8vFkqfSViLqtgMzZPrauXUBEnUd8cpjj4SlGYROUiA7PmAFpXkZZ1ayOohJLiRVZSE2pMUm/Hc77QdywENC0f5xxdR6InEzsmw==",
+          "W/xr78lARJDkdZBFRgLeWydRHvguxzSmoPBYDg1cWS+efPzrXcTbkbZby4Fir/JzxjK/923Cg6yZL1PD728JKuPJbqyzbJWfAZtc0xjWYsBt5TacqXmcUKnZ+MJl/R3K+sidAUtL/XOs2VRT14Auavla0wtGBCLOh4fiHJ6E0fPEF5XHVh9Q4/bQJVX7+I0Sa+e/1moHARd/fRc="
+        ]
+      },
+      "urls_with_query_strings": {
+        "n": 500,
+        "fpr@0.5": {
+          "k": 408,
+          "n": 500,
+          "rate": 0.816,
+          "ci95_wilson": [
+            0.7796701866722183,
+            0.8475110544162506
+          ]
+        },
+        "fpr@0.15": {
+          "k": 487,
+          "n": 500,
+          "rate": 0.974,
+          "ci95_wilson": [
+            0.9560280989556288,
+            0.9847437626770749
+          ]
+        },
+        "examples": [
+          "https://api.acme.io/api/v2/orders?category=an+football#of",
+          "https://api.acme.io/api/v2/orders?filter=2417&redirect=business+ideas&sort=bread+comprehension",
+          "https://api.acme.io/api/v2/orders?id=9221&utm_medium=select&sort=6883&redirect=train+lyon#sourdough"
+        ],
+        "highest_scoring": [
+          "https://example.com/blog/2024/05/release-notes?q=how+fix+instructions&page=password+near+vegetarian&lang=udp+sourdough+near&ref=and+instructions+how",
+          "https://maps.example.net/docs/getting-started?filter=what+from+windows&utm_source=of+what+restaurant&q=driver+update&utm_medium=scores+account+flights#recipe",
+          "https://example.com/static/js/app.min.js?lang=6000&id=now+table+union&sort=672&utm_source=business+install#shipping"
+        ]
+      },
+      "ids_emails_dates_addresses": {
+        "n": 500,
+        "fpr@0.5": {
+          "k": 34,
+          "n": 500,
+          "rate": 0.068,
+          "ci95_wilson": [
+            0.04906621332682857,
+            0.09352145708387197
+          ]
+        },
+        "fpr@0.15": {
+          "k": 91,
+          "n": 500,
+          "rate": 0.182,
+          "ci95_wilson": [
+            0.15064591449727432,
+            0.21820334288838023
+          ]
+        },
+        "examples": [
+          "+10 (775) 588-4961",
+          "+11 (839) 523-5666",
+          "+19 (551) 636-4774"
+        ],
+        "highest_scoring": [
+          "127 Oak Street, Apt #27, Springfield, IL 37356",
+          "699 Oak Street, Apt #17, Springfield, IL 12744",
+          "856 High Street, Apt #18, Springfield, IL 11511"
+        ]
+      },
+      "iot_telemetry": {
+        "n": 500,
+        "fpr@0.5": {
+          "k": 333,
+          "n": 500,
+          "rate": 0.666,
+          "ci95_wilson": [
+            0.6235317332195806,
+            0.7059368934281597
+          ]
+        },
+        "fpr@0.15": {
+          "k": 492,
+          "n": 500,
+          "rate": 0.984,
+          "ci95_wilson": [
+            0.9687485245822888,
+            0.9918708446797967
+          ]
+        },
+        "examples": [
+          "/api/v1/devices/sensor-103/telemetry?from=1746504123&to=1793888364&fields=temp,humidity",
+          "/api/v1/devices/sensor-110/telemetry?from=1730450867&to=1780657145&fields=temp,humidity",
+          "/api/v1/devices/sensor-113/telemetry?from=1718019095&to=1795622822&fields=temp,humidity"
+        ],
+        "highest_scoring": [
+          "{\"deviceId\":\"sensor-150\",\"temp\":21.31,\"humidity\":33.8,\"battery\":38,\"ts\":1750379221}",
+          "{\"deviceId\":\"sensor-413\",\"temp\":20.41,\"humidity\":73.0,\"battery\":18,\"ts\":1756815107}",
+          "{\"deviceId\":\"sensor-163\",\"temp\":25.38,\"humidity\":39.6,\"battery\":70,\"ts\":1739524948}"
+        ]
+      },
+      "hard_negatives_code_and_markup": {
+        "n": 500,
+        "fpr@0.5": {
+          "k": 500,
+          "n": 500,
+          "rate": 1.0,
+          "ci95_wilson": [
+            0.9923753814690964,
+            0.9999999999999999
+          ]
+        },
+        "fpr@0.15": {
+          "k": 500,
+          "n": 500,
+          "rate": 1.0,
+          "ci95_wilson": [
+            0.9923753814690964,
+            0.9999999999999999
+          ]
+        },
+        "examples": [
+          "**bold** and `code` and <b>500</b> text",
+          "**bold** and `code` and <b>account</b> text",
+          "**bold** and `code` and <b>arcade</b> text"
+        ],
+        "highest_scoring": [
+          "<p>install pharmacy history install menu reviews drop between</p><a href=\"https://news.example.co.uk/\">link</a>",
+          "<p>rome create with windows udp bread select reset</p><a href=\"https://news.example.co.uk/\">link</a>",
+          "<p>instructions learn for reviews order spanish reset history</p><a href=\"https://news.example.co.uk/\">link</a>"
+        ]
+      }
+    },
+    "headline_micro_excl_hard": {
+      "fpr@0.5": {
+        "k": 1295,
+        "n": 3500,
+        "rate": 0.37,
+        "ci95_wilson": [
+          0.3541553378836122,
+          0.3861297252311131
+        ]
+      },
+      "fpr@0.15": {
+        "k": 1797,
+        "n": 3500,
+        "rate": 0.5134285714285715,
+        "ci95_wilson": [
+          0.49686387388261666,
+          0.5299638228945437
+        ]
+      }
+    },
+    "headline_macro_excl_hard": {
+      "fpr@0.5": 0.37,
+      "fpr@0.15": 0.5134285714285715
+    }
+  }
+}
