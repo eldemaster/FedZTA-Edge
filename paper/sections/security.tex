@@ -8,12 +8,12 @@ This section states what the system defends against, measures the poisoning defe
 
 We consider four adversaries.
 
-\begin{description}
-  \item[A1, application-layer attacker.] Sends injection and cross-site-scripting payloads through an edge gateway toward upstream services. The gateway's classifier is the control under test.
-  \item[A2, network attacker.] Observes, replays, reorders or forges messages on the edge--cloud path, and may retain ciphertext indefinitely (``store now, decrypt later''). A2 holds no enrolled secret.
-  \item[A3, Sybil attacker.] Can reach the aggregator and tries to register or impersonate identities so as to outnumber honest peers.
-  \item[A4, compromised gateway.] Holds a valid enrolled secret and uploads arbitrary parameters. A4 is a Byzantine client; up to $f$ such nodes are assumed.
-\end{description}
+\begin{enumerate}
+  \item \textbf{A1: Application-layer attacker.} Sends injection and cross-site-scripting payloads through an edge gateway toward upstream services. The gateway's classifier is the control under test.
+  \item \textbf{A2: Network attacker.} Observes, replays, reorders or forges messages on the edge--cloud path, and may retain ciphertext indefinitely (``store now, decrypt later''). A2 holds no enrolled secret.
+  \item \textbf{A3: Sybil attacker.} Can reach the aggregator and tries to register or impersonate identities so as to outnumber honest peers.
+  \item \textbf{A4: Compromised gateway.} Holds a valid enrolled secret and uploads arbitrary parameters. A4 is a Byzantine client; up to $f$ such nodes are assumed.
+\end{enumerate}
 
 The cloud aggregator is trusted for availability and for executing the aggregation rule, but is not given raw payloads. We exclude a compromised aggregator, optimised model-poisoning crafted against the specific aggregation rule~\cite{fang2020}, and adaptive input-space evasion of the classifier (Section~\ref{sec:sec-limits}).
 
