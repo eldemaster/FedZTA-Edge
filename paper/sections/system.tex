@@ -1,75 +1,77 @@
-\section{System Architecture and Method}
+\section{System and Method}
 \label{sec:system}
 
-FedZTA-Edge splits a Zero-Trust web application firewall (WAF) into two roles. Each \emph{edge gateway} inspects every request on an ARM IoT node with a small linear classifier and never transmits payloads. A \emph{cloud aggregator} receives only authenticated model parameters, combines them with a Byzantine-robust rule, and returns a global model. Figure~\ref{fig:architecture} shows the data and control flow; the following subsections describe each component and name the source module that implements it.
+The question of when federation helps needs a classifier cheap enough to run on every request at a gateway and small enough that exchanging it costs next to nothing. The system built to test this has two roles. An \emph{edge gateway} scores HTTP requests locally with a linear model and never transmits payloads. A \emph{cloud aggregator} accepts MAC-tagged parameter updates from enrolled gateways, combines them, and returns a global model. Figure~\ref{fig:architecture} shows the flow. The gateway is a web application firewall (WAF) enforcement point. It can sit inside a zero-trust deployment, where it supplies one per-request check on payload content, but it does not establish requester identity or device posture and is not itself a zero-trust architecture. Trust assumptions, adversaries and the limits of each control are stated once, in Section~\ref{sec:sec-threat}; this section describes mechanisms only.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fl_architecture.pdf}
-\caption{FedZTA-Edge architecture. Edge gateways score requests locally and upload signed weight vectors; the cloud aggregator authenticates, gates, and robustly aggregates them. Raw traffic never leaves the edge.}
+\caption{System architecture. Edge gateways score requests locally and upload MAC-tagged weight vectors over plain HTTP; the cloud aggregator authenticates, gates and aggregates them. Raw traffic stays at the edge.}
 \label{fig:architecture}
 \end{figure}
 
-\subsection{Threat Model and Design Constraints}
-\label{sec:sys-threat}
-We assume gateways with a Cortex-A72-class CPU, no GPU, and a Python standard-library runtime. Traffic is private: payloads cannot be shipped to the cloud. The network path between gateway and aggregator is adversarial; an attacker may observe, replay, reorder or forge update messages but holds no enrolled secret. A gateway that does hold a valid secret may be compromised and then behaves as a Byzantine client, which the aggregation rule, not the authentication layer, must contain (Section~\ref{sec:sys-agg}). These assumptions drive the choice of a linear model, a dependency-free feature transform, and symmetric authentication.
-
-\subsection{Feature Extraction}
+\subsection{Features and Classifier}
 \label{sec:sys-features}
-All feature computation lives in one module, \texttt{fedzta\_features.py}, imported verbatim by the gateway, the aggregator and the profiler, so that edge and cloud bucket n-grams identically. A request context $P$ (a path, query string, header value or body) is mapped to a vector $\mathbf{x}(P)\in\mathbb{R}^{D+3}$ with $D=256$, giving $259$ dimensions:
+Feature computation lives in one module, \texttt{fedzta\_features.py}, imported by the gateway, the aggregator and the profiler so that every party buckets n-grams identically. The unit that is featurised is a \emph{context} $P$: one string such as a path, a query string, a header value or a body. Each context maps to $\mathbf{x}(P)\in\mathbb{R}^{D+3}$ with $D=256$, i.e.\ $259$ dimensions:
 \begin{equation}
 \mathbf{x}(P) = \big[\, \hat{\mathbf{h}}(P) \;\big|\; \tfrac{|P|}{100} \;\big|\; \tfrac{s(P)}{20} \;\big|\; \tfrac{H(P)}{5} \,\big].
 \end{equation}
-Here $\hat{\mathbf{h}}(P)$ is the $\ell_2$-normalised histogram of lower-cased character $3$-grams hashed into $D$ buckets by a polynomial rolling hash with multiplier $131$ over $32$-bit state, $s(P)$ counts non-alphanumeric characters, and $H(P)$ is the Shannon entropy of the character distribution. A polynomial hash replaces MD5 because it is faster on the Cortex-A72 (0.242\,ms versus 0.404\,ms per request in an earlier profiling run; the later end-to-end measurement in Section~\ref{sec:eval-hardware} is 0.229\,ms) without measurable accuracy loss. The three scaling constants $(100, 20, 5)$ are fixed a priori and never fitted on data, so no scaler has to be shipped to the edge and no test statistics leak into training.
+Here $\hat{\mathbf{h}}(P)$ is the $\ell_2$-normalised histogram of lower-cased character trigrams hashed into $D$ buckets by a polynomial rolling hash (multiplier $131$, $32$-bit state), $s(P)$ counts non-alphanumeric characters, and $H(P)$ is the Shannon entropy of the character distribution. The polynomial hash replaced MD5 for speed on the Cortex-A72 (0.242\,ms versus 0.404\,ms per request in an earlier profiling run). The scaling constants $(100,20,5)$ are fixed a priori, so no scaler is shipped to the edge and no test statistics reach training.
 
-The classifier is logistic regression, $p(\mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b)$, with the logit clipped to $[-250,250]$ before the sigmoid. The full model is $259$ coefficients plus an intercept, i.e.\ $1{,}040$ bytes in single precision, which is also the size of one synchronisation payload.
+The classifier is logistic regression, $p(\mathbf{x})=\sigma(\mathbf{w}^\top\mathbf{x}+b)$, with the logit clipped to $[-250,250]$. The model has $259$ coefficients and an intercept, $1{,}040$ bytes in single precision, which is also the size of one synchronisation payload.
 
-\subsection{Federated Training and Aggregation}
+\subsection{Training Unit and Scoring Unit}
+\label{sec:sys-units}
+Training and inference operate on different units. In training, each sampled string, benign or malicious, is wrapped in one of seven synthetic request contexts (Section~\ref{sec:eval-setup}) and the \emph{wrapped string as a whole} is one example, featurised as a single context $P$. No example is a full multi-field request. At inference the gateway builds a list $\mathcal{C}(r)$ of contexts from the request, scores each separately with the same model, and takes the maximum (Section~\ref{sec:sys-waf}). The scoring rule therefore assumes that the field carrying an attack looks, to the model, like one of the wrapped training strings. That assumption is untested on captured traffic. Taking the maximum over several fields also raises the false-positive rate relative to scoring one field, because every extra benign context is another chance to cross the threshold.
+
+\subsection{Offline Training and Online Aggregation}
 \label{sec:sys-agg}
-\paragraph{Offline federated training.}
-The shipped model is produced by iterative federated averaging~\cite{mcmahan2017} over two simulated gateways (\texttt{fl\_simulation\_v4.py}, \texttt{train\_production\_model.py}). Each node holds an \texttt{SGDClassifier} with logistic loss, $\ell_2$ penalty $\alpha=10^{-4}$ and constant learning rate $\eta_0=0.01$. In every round each node starts from the current global parameters, trains for $30$ local epochs on its own data, and the server forms the sample-weighted average
-\begin{equation}
-\theta^{(t+1)} = \sum_k \tfrac{n_k}{n}\,\theta_k^{(t)}, \qquad n=\sum_k n_k,
-\end{equation}
-for $20$ rounds. Train and test sets are disjoint at the level of unique payloads, and all benign and malicious requests share one request template. The training configuration, including the topology in which nodes differ by benign traffic profile (public web versus API gateway), is the one selected in Section~\ref{sec:evaluation}.
+Two aggregation procedures appear in this paper and they are not interchangeable. \emph{Offline federated averaging} produced the shipped model and all accuracy results; \emph{online coordinate-wise median} runs in the deployed aggregator and is the subject of the poisoning study.
 
-\paragraph{Online robust aggregation.}
-In deployment the aggregator (\texttt{robust\_cloud.py}) keeps only the latest update per enrolled client and recomputes the global model on every accepted update. With $K$ stored updates the default rule is the coordinate-wise median~\cite{yin2018},
+\paragraph{Offline FedAvg.}
+Training follows federated averaging~\cite{mcmahan2017} over two simulated gateways (\texttt{fl\_simulation\_v4.py}, \texttt{train\_production\_model.py}). Each node holds an \texttt{SGDClassifier} with logistic loss, $\ell_2$ penalty $\alpha=10^{-4}$ and constant learning rate $\eta_0=0.01$. In each of $20$ rounds every node starts from the global parameters, trains for $30$ local epochs on its own data, and the server forms the sample-weighted average
+\begin{equation}
+\theta^{(t+1)} = \sum_k \tfrac{n_k}{n}\,\theta_k^{(t)}, \qquad n=\sum_k n_k .
+\end{equation}
+Train and test sets are disjoint at the level of unique payloads. The two nodes differ by benign profile (public web versus API), the configuration selected in Section~\ref{sec:evaluation}.
+
+\paragraph{Online median.}
+The deployed aggregator (\texttt{robust\_cloud.py}) keeps the latest update of each enrolled client and recomputes the global model on every accepted update. With $K$ stored updates the default rule is the coordinate-wise median~\cite{yin2018},
 \begin{equation}
 w_j = \operatorname{median}\{w_{k,j}\}_{k=1}^{K}, \qquad b = \operatorname{median}\{b_k\}_{k=1}^{K},
 \end{equation}
-with a trimmed mean and a plain mean selectable by configuration for comparison. The median tolerates $f$ Byzantine clients only while $K \ge 2f+1$; the \texttt{/weights} endpoint therefore reports $f_{\max}=\max(0,\lfloor (K-1)/2\rfloor)$ and a \texttt{robust} flag, so a deployment with $K<3$ is visibly not protected.
+with a trimmed mean or plain mean selectable for comparison. The median tolerates $f$ Byzantine clients only while $K\ge 2f+1$. The \texttt{/weights} endpoint reports $f_{\max}=\max(0,\lfloor (K-1)/2\rfloor)$ and a \texttt{robust} flag, so a deployment with $K<3$ is visibly unprotected. Gateways keep training locally between syncs only through the anchor replay of Section~\ref{sec:sys-waf}; the offline FedAvg schedule is not run online.
 
-Before an update enters the pool it must pass the checks in order: authentication (Section~\ref{sec:sys-auth}), a per-client rate limit (default one update per $5$\,s), dimension and finiteness checks, and a \emph{norm gate}. The gate rejects an update whose $\ell_2$ norm, relative to a reference norm, falls outside $[1/\rho,\rho]$ with $\rho=4$. The reference is the median norm of the other peers when at least two have reported, the larger of the single other peer's norm and the bootstrap model's norm when exactly one has, and the bootstrap model's norm otherwise, so the gate stays active even at $K=2$. Rejecting gross outliers before aggregation prevents a Byzantine client from consuming the per-coordinate honest majority on which the median depends.
+Each update must pass, in order, authentication (Section~\ref{sec:sys-auth}), a per-client rate limit (default one update per $5$\,s), dimension and finiteness checks, and a \emph{norm gate}. The gate rejects an update whose $\ell_2$ norm, relative to a reference norm, falls outside $[1/\rho,\rho]$ with $\rho=4$. The reference is the median norm of the other peers when at least two have reported; with exactly one other peer, the larger of that peer's norm and the bootstrap model's norm; otherwise the bootstrap norm. The gate therefore stays active at $K=2$. Section~\ref{sec:sec-poison} discusses what it does and does not stop.
 
 \subsection{Authenticated Updates}
 \label{sec:sys-auth}
-Byzantine robustness is vacuous if anyone can register arbitrarily many identities. \texttt{fedzta\_auth.py} therefore binds every update to an enrolled gateway. Enrolment (\texttt{enroll\_peer.py}) issues a 256-bit secret from the OS CSPRNG. An update is a body $\{\text{client\_id},\mathbf{w},b,n,\text{ts},\text{nonce}\}$ serialised canonically (sorted keys, fixed separators) and tagged with HMAC-SHA256~\cite{rfc2104}. Verification checks, in this order, that the client is enrolled (unknown and malformed identifiers receive the same response), that the tag matches under a constant-time comparison, that the timestamp lies within $\pm120$\,s, and that the nonce has not been seen within a $300$\,s window (\texttt{ReplayGuard}). Symmetric HMAC is chosen over a public-key signature because it needs only \texttt{hmac} and \texttt{hashlib} from the standard library, preserving the zero-dependency edge footprint.
+\texttt{fedzta\_auth.py} binds each update to an enrolled gateway. Enrolment (\texttt{enroll\_peer.py}) issues a 256-bit secret from the OS CSPRNG. An update is the body $\{\text{client\_id},\mathbf{w},b,n,\text{ts},\text{nonce}\}$, serialised canonically (sorted keys, fixed separators) and tagged with HMAC-SHA256~\cite{rfc2104}; we call the result a MAC-tagged update. Verification checks that the client is enrolled (unknown and malformed identifiers receive the same response), that the tag matches under a constant-time comparison, that the timestamp lies within $\pm120$\,s, and that the nonce has not appeared in the last $300$\,s (\texttt{ReplayGuard}). A symmetric MAC needs only \texttt{hmac} and \texttt{hashlib} from the Python standard library, which keeps the edge dependency-free. Symmetric keys give authenticity and freshness but not non-repudiation (Section~\ref{sec:sec-limits}).
 
-\subsection{Post-Quantum Channel}
+\subsection{Transport and the ML-KEM Benchmark}
 \label{sec:sys-pqc}
-Weights are intellectual property, and a recorded channel can be decrypted later by a quantum adversary (``store now, decrypt later''). The channel is therefore designed around ML-KEM-512~\cite{fips203}. In the prototype (\texttt{cloud\_pqc.py}, \texttt{edge\_pqc.py}) the aggregator generates a key pair and serves its public key at \texttt{/pubkey}; the gateway encapsulates against it, sends the ciphertext to \texttt{/exchange}, and both sides derive the same shared secret via decapsulation. The shared secret is intended to key authenticated encryption of the update body. In the current prototype the key exchange is demonstrated and benchmarked as a standalone component, and the live update path (\texttt{/update}, \texttt{/weights}) still carries HMAC-authenticated JSON over plain HTTP; integrating the derived key into that path remains future work, and authenticity today rests on HMAC alone.
+The live transport is plain HTTP carrying HMAC-authenticated JSON: \texttt{/update} and \texttt{/weights} are neither encrypted nor protected by TLS. ML-KEM-512~\cite{fips203} exists in the repository as a standalone key-exchange benchmark (\texttt{cloud\_pqc.py}, \texttt{edge\_pqc.py}): the aggregator serves a public key at \texttt{/pubkey}, the gateway encapsulates against it, posts the ciphertext to \texttt{/exchange}, and both sides derive the same shared secret. That secret is not used to encrypt any update. The system provides authentication of the update path and no confidentiality against a network observer; this paper makes no post-quantum security claim.
 
-\subsection{Continuous Inspection Gateway}
+\subsection{Gateway}
 \label{sec:sys-waf}
-The gateway (\texttt{continuous\_waf.py}) is a multi-threaded HTTP server. For each GET, POST or PUT request it builds a list of \emph{contexts}: the URL path, the percent-decoded query string, the \texttt{User-Agent}, \texttt{Referer} and \texttt{Cookie} header values, and, for POST and PUT, the body truncated to $8$\,KB. Each context is scored independently with the current model and the request score is the maximum,
+The gateway (\texttt{continuous\_waf.py}) is a multi-threaded HTTP server. For each GET, POST or PUT request it builds $\mathcal{C}(r)$: the URL path, the percent-decoded query string, the \texttt{User-Agent}, \texttt{Referer} and \texttt{Cookie} header values, and for POST and PUT the body truncated to $8$\,KB. The request score is the maximum context score,
 \begin{equation}
 s(r) = \max_{P\in\mathcal{C}(r)} p\big(\mathbf{x}(P)\big),
 \end{equation}
-so a payload hidden in any single field is not diluted by benign fields. The request is blocked (HTTP~403) when $s(r)\ge\tau$. Two operating switches support safe rollout: \emph{shadow mode} scores and counts would-be blocks but always forwards, and the \emph{failure policy} chooses between fail-open (default, return 200 on an internal error) and fail-closed. Sockets carry a $5$\,s timeout, and non-numeric \texttt{Content-Length} values are rejected and bodies are read only up to the $8$\,KB cap, bounding slow-client and oversized-body resource use. Counters are updated under a lock; \texttt{/health} and \texttt{/metrics} expose liveness and block counts.
+so a payload in one field is not diluted by benign neighbours, and the request is blocked with HTTP~403 when $s(r)\ge\tau$. In \emph{shadow mode} the gateway counts would-be blocks but forwards everything; the \emph{failure policy} selects fail-open (the default, forwarding on internal error) or fail-closed. Sockets time out after $5$\,s, non-numeric \texttt{Content-Length} values are rejected, and bodies are read only up to the cap. Counters are updated under a lock, and \texttt{/health} and \texttt{/metrics} expose liveness and block counts.
 
 \paragraph{Decision threshold.}
-The default $\tau$ is $0.5$ in the offline profiler, but the deployed gateway uses $\tau=0.15$. The shipped model was trained with an augmented, more varied benign distribution (JSON and form bodies, varied lengths, prose), which shifts the intercept downward ($b\approx-5.57$) and lowers attack-class probabilities; $\tau$ was lowered to $0.15$ to compensate. Section~\ref{sec:evaluation} reports operating points that do not depend on this single threshold.
+The offline profiler uses $\tau=0.5$; the deployed gateway uses $\tau=0.15$. The shipped model was trained on augmented benign data (JSON and form bodies, varied lengths, prose), which moves the intercept to $b\approx-5.57$ and lowers attack probabilities, and $\tau$ was lowered to compensate. Held-out behaviour at this threshold is reported in Section~\ref{sec:evaluation}, not here.
 
-\paragraph{Anchor set instead of pseudo-labelling.}
-An earlier design trained online on the gateway's own confident predictions. Self-labelling lets the model reinforce its own errors and drift, so it was removed. Local adaptation now happens only by replaying a verified \emph{anchor set} (\texttt{anchor\_set.json}), a small list of labelled payloads checked by an operator, through one SGD step each ($\eta=0.05$) every $60$\,s. The anchor set is a drift guard and a hook for operator-verified labels rather than a source of new knowledge; new knowledge arrives through federation.
+\paragraph{Anchor replay.}
+An earlier gateway trained on its own confident predictions, which lets the model reinforce its own errors; that loop was removed. Local adaptation is now a replay of a small operator-verified list of labelled payloads (\texttt{anchor\_set.json}) through one SGD step each ($\eta=0.05$) every $60$\,s. The anchor set limits drift and offers a hook for verified labels; new knowledge is supposed to arrive through federation.
 
 \paragraph{Synchronisation.}
-Every $15$\,s the gateway uploads a signed snapshot (weights, bias, sample count), downloads the global model, and applies it if its length equals $259$, persisting it atomically (write, \texttt{fsync}, rename). Rejections (401 unauthenticated, 409 norm gate, 429 rate limit) are logged and the gateway keeps its current model, so a cloud outage never stops inspection.
+Every $15$\,s the gateway uploads a MAC-tagged snapshot (weights, bias, sample count), downloads the global model, and adopts it if its length is $259$, persisting it atomically (write, \texttt{fsync}, rename). Rejections (401, 409, 429) are logged and the gateway keeps its current model, so an aggregator outage never stops inspection. Each published global model is versioned to permit rollback.
 
-\subsection{End-to-End Procedures}
+\subsection{Procedures}
 \label{sec:sys-alg}
-Algorithm~\ref{alg:gateway} summarises per-request inspection and synchronisation on the edge; Algorithm~\ref{alg:aggregator} summarises update handling on the cloud.
+Algorithm~\ref{alg:gateway} gives edge inspection and synchronisation; Algorithm~\ref{alg:aggregator} gives update handling in the cloud.
 
 \begin{algorithm}[t]
 \caption{Edge gateway: inspection and synchronisation}
@@ -114,6 +116,28 @@ Algorithm~\ref{alg:gateway} summarises per-request inspection and synchronisatio
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Resource Footprint}
-\label{sec:sys-footprint}
-Every message in the update protocol has fixed size set by the model dimension: one update carries $260$ values ($1{,}040$ bytes in single precision), independent of the number of inspected requests. Measured latency, memory, throughput and bandwidth are reported in Section~\ref{sec:evaluation}.
+\subsection{Implementation Status}
+\label{sec:sys-status}
+Table~\ref{tab:sys-status} records what the repository implements and what it does not, so that later sections can be read against it. Each row corresponds to a code path; none of the rows marked ``not implemented'' is assumed anywhere in the evaluation.
+
+\begin{table}[t]
+\centering
+\caption{Implementation status of the prototype.}
+\label{tab:sys-status}
+\small
+\begin{tabular}{@{}p{2.5cm}p{5.3cm}@{}}
+\toprule
+\textbf{Area} & \textbf{Status} \\ \midrule
+Inspection & GET, POST, PUT; path, query, \texttt{User-Agent}, \texttt{Referer}, \texttt{Cookie}, body ($\le8$\,KB); per-context score, maximum taken \\
+Update auth & Enrolment allowlist, HMAC-SHA256, timestamp, single-use nonce (consumed before the rate check), per-identity rate limit, dimension and norm checks \\
+Aggregation & Latest update per peer; median (default), trimmed mean, mean; $f_{\max}$ reported; $K=2$ on hardware \\
+Operations & Atomic model persistence, versioned global models, shadow mode, fail-open or fail-closed policy, anchor replay in place of pseudo-labelling \\
+Transport & Plain HTTP, MAC-tagged bodies; no encryption \\
+ML-KEM-512 & Standalone benchmark; not on the live path \\
+Privacy & Differential privacy not implemented \\
+Requester identity & Not checked; the gateway scores payloads only \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Per-update size is fixed by the model dimension: $260$ values, $1{,}040$ bytes, independent of the number of inspected requests. The experiments that exercise this system, and the objects they train and score, are described in Section~\ref{sec:evaluation}.
