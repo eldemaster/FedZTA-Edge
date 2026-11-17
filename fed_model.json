@@ -22,7 +22,9 @@
       48,
       49
     ],
-    "shipped_seed": 42
+    "shipped_seed": 49,
+    "stored_seed": 49,
+    "provenance_note": "Coefficients/intercept/metrics/convergence in this file were produced by the LAST seed (49) of the loop; an earlier revision of train_production_model.py mislabelled it shipped_seed=42. Label corrected here without retraining; re-running the fixed script stores seed 42 instead and changes the deployed weights."
   },
   "coefficients": [
     -0.36350618667501344,

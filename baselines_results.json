@@ -1,0 +1,1861 @@
+{
+  "config": {
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49
+    ],
+    "rounds": 20,
+    "local_epochs": 30,
+    "n_benign_train_per_node": 3000,
+    "n_attack_train_per_node": 1000,
+    "n_test_benign": 1500,
+    "n_test_attack_per_class": 500,
+    "features": "fedzta_features.extract (poly 3-gram D=256 + 3 syntactic)",
+    "bootstrap_resamples": 200,
+    "fedprox_mus": [
+      0.0,
+      0.01,
+      0.1,
+      1.0
+    ],
+    "fed_numpy_solver": {
+      "lr": 0.5,
+      "batch": 32,
+      "alpha": 0.0001
+    },
+    "not_run": {
+      "modsecurity_crs": "ModSecurity + OWASP CRS (paranoia 1-2) skipped: needs libmodsecurity plus a rule-set checkout and a WAF harness; not cheap in this environment."
+    },
+    "fpr_note": "test benign n=1500 so 0.1% FPR is a threshold at the 2-th highest benign score (1-2 samples); recall@0.1% is high-variance. Binary/tied detectors (regex, libinjection) can have actual FPR != nominal; see actual_fpr@*."
+  },
+  "summary": {
+    "pooled_linear": {
+      "roc_auc": {
+        "mean": 0.96852,
+        "std_over_seeds": 0.005942593317175026,
+        "ci95_bootstrap": [
+          0.9653887665458626,
+          0.9716529301713619
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.8160000000000001,
+        "std_over_seeds": 0.05090923295434726,
+        "ci95_bootstrap": [
+          0.796737705083444,
+          0.8355584292652942
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.8835,
+        "std_over_seeds": 0.018303005217723142,
+        "ci95_bootstrap": [
+          0.8737297244109492,
+          0.891488869040884
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.88675,
+        "std_over_seeds": 0.0568501319259683
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.74525,
+        "std_over_seeds": 0.05181638254451966
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.9512499999999999,
+        "std_over_seeds": 0.01396200200544319
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.81575,
+        "std_over_seeds": 0.03427006711402823
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "fedavg_sgd": {
+      "roc_auc": {
+        "mean": 0.96882525,
+        "std_over_seeds": 0.006064203121025453,
+        "ci95_bootstrap": [
+          0.965438364562954,
+          0.9714410469049416
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.8158749999999999,
+        "std_over_seeds": 0.046589799044426033,
+        "ci95_bootstrap": [
+          0.7896934355432718,
+          0.8333390916727982
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.88425,
+        "std_over_seeds": 0.017935648859185457,
+        "ci95_bootstrap": [
+          0.8706458685545242,
+          0.8907022218588005
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.88825,
+        "std_over_seeds": 0.049954354164577094
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.7435,
+        "std_over_seeds": 0.04914010581999189
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.9510000000000001,
+        "std_over_seeds": 0.013228756555322926
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.8175,
+        "std_over_seeds": 0.03418698582794334
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "fedavg_np": {
+      "roc_auc": {
+        "mean": 0.9690259166666667,
+        "std_over_seeds": 0.005917035335345033,
+        "ci95_bootstrap": [
+          0.9663425400983893,
+          0.9716104134680357
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.812875,
+        "std_over_seeds": 0.048955177203233544,
+        "ci95_bootstrap": [
+          0.7887064578656876,
+          0.8316556488325217
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.884625,
+        "std_over_seeds": 0.016239900707824554,
+        "ci95_bootstrap": [
+          0.8719771544533733,
+          0.8914397453504035
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.8845000000000001,
+        "std_over_seeds": 0.05517019122678478
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.74125,
+        "std_over_seeds": 0.04896874002871629
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.952,
+        "std_over_seeds": 0.00979795897113272
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.81725,
+        "std_over_seeds": 0.03424817513386661
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "fedprox_mu0.01": {
+      "roc_auc": {
+        "mean": 0.963455,
+        "std_over_seeds": 0.005761406165164849,
+        "ci95_bootstrap": [
+          0.9599085227450813,
+          0.96652296125299
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.7987500000000001,
+        "std_over_seeds": 0.0406255769189805,
+        "ci95_bootstrap": [
+          0.7705860612902056,
+          0.8179259989470156
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.8583749999999999,
+        "std_over_seeds": 0.011704032424767126,
+        "ci95_bootstrap": [
+          0.8478523635428041,
+          0.8656283110953038
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.86975,
+        "std_over_seeds": 0.04707905585289494
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.72775,
+        "std_over_seeds": 0.043294774511481185
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.9299999999999999,
+        "std_over_seeds": 0.011135528725660017
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.7867500000000001,
+        "std_over_seeds": 0.02896441782601542
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "fedprox_mu0.1": {
+      "roc_auc": {
+        "mean": 0.9248000833333334,
+        "std_over_seeds": 0.005609647151089075,
+        "ci95_bootstrap": [
+          0.9208792198485057,
+          0.9286478250804823
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.47325,
+        "std_over_seeds": 0.03917508774718956,
+        "ci95_bootstrap": [
+          0.4455833301793138,
+          0.48532112190605065
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.5221250000000001,
+        "std_over_seeds": 0.041953657468687997,
+        "ci95_bootstrap": [
+          0.5105520352262727,
+          0.5351749402852025
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.54875,
+        "std_over_seeds": 0.05480818825686542
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.39775000000000005,
+        "std_over_seeds": 0.03652995346287755
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.603,
+        "std_over_seeds": 0.05629387178015027
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.44125,
+        "std_over_seeds": 0.037201310460788874
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "fedprox_mu1.0": {
+      "roc_auc": {
+        "mean": 0.7985704166666667,
+        "std_over_seeds": 0.004426552407379549,
+        "ci95_bootstrap": [
+          0.7933683459292105,
+          0.8043832719885007
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.26637500000000003,
+        "std_over_seeds": 0.026452492793685816,
+        "ci95_bootstrap": [
+          0.24983701777926776,
+          0.2776651860138856
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.28425,
+        "std_over_seeds": 0.025969934539771172,
+        "ci95_bootstrap": [
+          0.27332273431851284,
+          0.29493290399552297
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.3135,
+        "std_over_seeds": 0.04470738194079363
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.21925,
+        "std_over_seeds": 0.023894298483110987
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.32725000000000004,
+        "std_over_seeds": 0.043965185090023215
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.24125,
+        "std_over_seeds": 0.023322467708199325
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "isolated_A": {
+      "roc_auc": {
+        "mean": 0.9613261666666667,
+        "std_over_seeds": 0.007042463874005065,
+        "ci95_bootstrap": [
+          0.9584890665365241,
+          0.9646347258510216
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.768375,
+        "std_over_seeds": 0.0804362130821684,
+        "ci95_bootstrap": [
+          0.7623208301467054,
+          0.8138350904683153
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.871,
+        "std_over_seeds": 0.018234582528810484,
+        "ci95_bootstrap": [
+          0.860512252664171,
+          0.8783677925342278
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.845,
+        "std_over_seeds": 0.08529947244854448
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.69175,
+        "std_over_seeds": 0.07948230935245905
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.9450000000000001,
+        "std_over_seeds": 0.013304134695650048
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.7969999999999999,
+        "std_over_seeds": 0.03214031735997637
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "isolated_B": {
+      "roc_auc": {
+        "mean": 0.9680684166666667,
+        "std_over_seeds": 0.005455843910050306,
+        "ci95_bootstrap": [
+          0.9658263662217204,
+          0.9709972660569938
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.7113750000000001,
+        "std_over_seeds": 0.09330720430384784,
+        "ci95_bootstrap": [
+          0.6827738720650203,
+          0.7596460681044476
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.861625,
+        "std_over_seeds": 0.01778297992463582,
+        "ci95_bootstrap": [
+          0.8449161355282855,
+          0.8703943902408168
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.7805,
+        "std_over_seeds": 0.10562078393952583
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.64225,
+        "std_over_seeds": 0.08720342596480944
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.925,
+        "std_over_seeds": 0.019519221295943103
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.7982499999999999,
+        "std_over_seeds": 0.03259505330567815
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "regex": {
+      "roc_auc": {
+        "mean": 0.873375,
+        "std_over_seeds": 0.006613197033205677,
+        "ci95_bootstrap": [
+          0.8690336041172442,
+          0.8769341088994274
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.74675,
+        "std_over_seeds": 0.01322639406641131,
+        "ci95_bootstrap": [
+          0.738067208234488,
+          0.7538682177988548
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.74675,
+        "std_over_seeds": 0.01322639406641131,
+        "ci95_bootstrap": [
+          0.738067208234488,
+          0.7538682177988548
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.81725,
+        "std_over_seeds": 0.01802602285586033
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.67625,
+        "std_over_seeds": 0.02164341701303191
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.81725,
+        "std_over_seeds": 0.01802602285586033
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.67625,
+        "std_over_seeds": 0.02164341701303191
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.0,
+        "std_over_seeds": 0.0
+      }
+    },
+    "charclass": {
+      "roc_auc": {
+        "mean": 0.8097174166666666,
+        "std_over_seeds": 0.006783376113194372,
+        "ci95_bootstrap": [
+          0.8037147647886419,
+          0.8160903886957676
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.11775,
+        "std_over_seeds": 0.05514016231387064,
+        "ci95_bootstrap": [
+          0.08843611992316958,
+          0.15801178525737059
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.17775000000000002,
+        "std_over_seeds": 0.014872373717735844,
+        "ci95_bootstrap": [
+          0.16798335203195106,
+          0.18503698029910917
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.14575,
+        "std_over_seeds": 0.07038776527209824
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.08975,
+        "std_over_seeds": 0.04374285655967154
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.22175,
+        "std_over_seeds": 0.027375856150995543
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.13375,
+        "std_over_seeds": 0.01591972047493297
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0005833333333333333,
+        "std_over_seeds": 0.0002204792759220492
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.009666666666666667,
+        "std_over_seeds": 0.00033333333333333305
+      }
+    },
+    "libinjection": {
+      "roc_auc": {
+        "mean": 0.791855125,
+        "std_over_seeds": 0.00880819862233398,
+        "ci95_bootstrap": [
+          0.7857141278654436,
+          0.7972357605986212
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.5838749999999999,
+        "std_over_seeds": 0.017567281377606492,
+        "ci95_bootstrap": [
+          0.442369600628138,
+          0.5939080813034812
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.5838749999999999,
+        "std_over_seeds": 0.017567281377606492,
+        "ci95_bootstrap": [
+          0.5715169653061672,
+          0.5946649162568524
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.7887500000000001,
+        "std_over_seeds": 0.021164534013296866
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.379,
+        "std_over_seeds": 0.033852621759621504
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.7887500000000001,
+        "std_over_seeds": 0.021164534013296866
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.379,
+        "std_over_seeds": 0.033852621759621504
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.00016666666666666666,
+        "std_over_seeds": 0.00028867513459481284
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.00016666666666666666,
+        "std_over_seeds": 0.00028867513459481284
+      }
+    },
+    "gbt": {
+      "roc_auc": {
+        "mean": 0.9886804166666666,
+        "std_over_seeds": 0.0034108968344524117,
+        "ci95_bootstrap": [
+          0.9873343580101617,
+          0.9901192476775562
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.893375,
+        "std_over_seeds": 0.03386346667132593,
+        "ci95_bootstrap": [
+          0.7686901094561058,
+          0.9070575655988238
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.94975,
+        "std_over_seeds": 0.011986972094736826,
+        "ci95_bootstrap": [
+          0.9411427444893483,
+          0.9538528228324783
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.9510000000000001,
+        "std_over_seeds": 0.021494185260204652
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.83575,
+        "std_over_seeds": 0.04751249835569585
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.99125,
+        "std_over_seeds": 0.004115519408288586
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.90825,
+        "std_over_seeds": 0.022966007489330836
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    },
+    "mlp": {
+      "roc_auc": {
+        "mean": 0.97594325,
+        "std_over_seeds": 0.00863733549087592,
+        "ci95_bootstrap": [
+          0.9741347335673483,
+          0.9783239245595059
+        ]
+      },
+      "recall@fpr0.001": {
+        "mean": 0.78575,
+        "std_over_seeds": 0.048615198240879356,
+        "ci95_bootstrap": [
+          0.7499708837696042,
+          0.8383694370681971
+        ]
+      },
+      "recall@fpr0.01": {
+        "mean": 0.9043749999999999,
+        "std_over_seeds": 0.019032455832077994,
+        "ci95_bootstrap": [
+          0.8978225405443827,
+          0.9114269119947415
+        ]
+      },
+      "xss_recall@fpr0.001": {
+        "mean": 0.841,
+        "std_over_seeds": 0.051768716422179145
+      },
+      "sqli_recall@fpr0.001": {
+        "mean": 0.7304999999999999,
+        "std_over_seeds": 0.048122240180606735
+      },
+      "xss_recall@fpr0.01": {
+        "mean": 0.94875,
+        "std_over_seeds": 0.017086178624841755
+      },
+      "sqli_recall@fpr0.01": {
+        "mean": 0.86,
+        "std_over_seeds": 0.026381811916545837
+      },
+      "actual_fpr@0.001": {
+        "mean": 0.0006666666666666666,
+        "std_over_seeds": 0.0
+      },
+      "actual_fpr@0.01": {
+        "mean": 0.01,
+        "std_over_seeds": 0.0
+      }
+    }
+  },
+  "per_seed": {
+    "pooled_linear": {
+      "42": {
+        "roc_auc": 0.9581526666666668,
+        "recall@fpr0.001": 0.824,
+        "xss_recall@fpr0.001": 0.94,
+        "sqli_recall@fpr0.001": 0.708,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.862,
+        "xss_recall@fpr0.01": 0.97,
+        "sqli_recall@fpr0.01": 0.754,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.9698686666666667,
+        "recall@fpr0.001": 0.845,
+        "xss_recall@fpr0.001": 0.92,
+        "sqli_recall@fpr0.001": 0.77,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.897,
+        "xss_recall@fpr0.01": 0.966,
+        "sqli_recall@fpr0.01": 0.828,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.9788353333333334,
+        "recall@fpr0.001": 0.809,
+        "xss_recall@fpr0.001": 0.858,
+        "sqli_recall@fpr0.001": 0.76,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.894,
+        "xss_recall@fpr0.01": 0.94,
+        "sqli_recall@fpr0.01": 0.848,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9733159999999998,
+        "recall@fpr0.001": 0.839,
+        "xss_recall@fpr0.001": 0.896,
+        "sqli_recall@fpr0.001": 0.782,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.912,
+        "xss_recall@fpr0.01": 0.956,
+        "sqli_recall@fpr0.01": 0.868,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.9637059999999998,
+        "recall@fpr0.001": 0.685,
+        "xss_recall@fpr0.001": 0.748,
+        "sqli_recall@fpr0.001": 0.622,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.851,
+        "xss_recall@fpr0.01": 0.926,
+        "sqli_recall@fpr0.01": 0.776,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.9713493333333334,
+        "recall@fpr0.001": 0.847,
+        "xss_recall@fpr0.001": 0.912,
+        "sqli_recall@fpr0.001": 0.782,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.878,
+        "xss_recall@fpr0.01": 0.94,
+        "sqli_recall@fpr0.01": 0.816,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9650186666666667,
+        "recall@fpr0.001": 0.843,
+        "xss_recall@fpr0.001": 0.906,
+        "sqli_recall@fpr0.001": 0.78,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.888,
+        "xss_recall@fpr0.01": 0.952,
+        "sqli_recall@fpr0.01": 0.824,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.9679133333333333,
+        "recall@fpr0.001": 0.836,
+        "xss_recall@fpr0.001": 0.914,
+        "sqli_recall@fpr0.001": 0.758,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.886,
+        "xss_recall@fpr0.01": 0.96,
+        "sqli_recall@fpr0.01": 0.812,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "fedavg_sgd": {
+      "42": {
+        "roc_auc": 0.9578460000000001,
+        "recall@fpr0.001": 0.82,
+        "xss_recall@fpr0.001": 0.932,
+        "sqli_recall@fpr0.001": 0.708,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.864,
+        "xss_recall@fpr0.01": 0.97,
+        "sqli_recall@fpr0.01": 0.758,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.9698659999999999,
+        "recall@fpr0.001": 0.844,
+        "xss_recall@fpr0.001": 0.918,
+        "sqli_recall@fpr0.001": 0.77,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.896,
+        "xss_recall@fpr0.01": 0.962,
+        "sqli_recall@fpr0.01": 0.83,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.9792513333333333,
+        "recall@fpr0.001": 0.824,
+        "xss_recall@fpr0.001": 0.878,
+        "sqli_recall@fpr0.001": 0.77,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.898,
+        "xss_recall@fpr0.01": 0.942,
+        "sqli_recall@fpr0.01": 0.854,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9737699999999999,
+        "recall@fpr0.001": 0.839,
+        "xss_recall@fpr0.001": 0.896,
+        "sqli_recall@fpr0.001": 0.782,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.913,
+        "xss_recall@fpr0.01": 0.956,
+        "sqli_recall@fpr0.01": 0.87,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.96457,
+        "recall@fpr0.001": 0.695,
+        "xss_recall@fpr0.001": 0.762,
+        "sqli_recall@fpr0.001": 0.628,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.856,
+        "xss_recall@fpr0.01": 0.932,
+        "sqli_recall@fpr0.01": 0.78,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.9714393333333333,
+        "recall@fpr0.001": 0.847,
+        "xss_recall@fpr0.001": 0.912,
+        "sqli_recall@fpr0.001": 0.782,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.871,
+        "xss_recall@fpr0.01": 0.932,
+        "sqli_recall@fpr0.01": 0.81,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9650206666666667,
+        "recall@fpr0.001": 0.833,
+        "xss_recall@fpr0.001": 0.904,
+        "sqli_recall@fpr0.001": 0.762,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.89,
+        "xss_recall@fpr0.01": 0.954,
+        "sqli_recall@fpr0.01": 0.826,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.9688386666666666,
+        "recall@fpr0.001": 0.825,
+        "xss_recall@fpr0.001": 0.904,
+        "sqli_recall@fpr0.001": 0.746,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.886,
+        "xss_recall@fpr0.01": 0.96,
+        "sqli_recall@fpr0.01": 0.812,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "fedavg_np": {
+      "42": {
+        "roc_auc": 0.9585493333333334,
+        "recall@fpr0.001": 0.823,
+        "xss_recall@fpr0.001": 0.938,
+        "sqli_recall@fpr0.001": 0.708,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.862,
+        "xss_recall@fpr0.01": 0.97,
+        "sqli_recall@fpr0.01": 0.754,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.9698946666666667,
+        "recall@fpr0.001": 0.841,
+        "xss_recall@fpr0.001": 0.914,
+        "sqli_recall@fpr0.001": 0.768,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.891,
+        "xss_recall@fpr0.01": 0.954,
+        "sqli_recall@fpr0.01": 0.828,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.9792453333333333,
+        "recall@fpr0.001": 0.822,
+        "xss_recall@fpr0.001": 0.876,
+        "sqli_recall@fpr0.001": 0.768,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.898,
+        "xss_recall@fpr0.01": 0.942,
+        "sqli_recall@fpr0.01": 0.854,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9739773333333333,
+        "recall@fpr0.001": 0.835,
+        "xss_recall@fpr0.001": 0.892,
+        "sqli_recall@fpr0.001": 0.778,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.913,
+        "xss_recall@fpr0.01": 0.956,
+        "sqli_recall@fpr0.01": 0.87,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.9649833333333334,
+        "recall@fpr0.001": 0.686,
+        "xss_recall@fpr0.001": 0.746,
+        "sqli_recall@fpr0.001": 0.626,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.861,
+        "xss_recall@fpr0.01": 0.938,
+        "sqli_recall@fpr0.01": 0.784,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.971768,
+        "recall@fpr0.001": 0.848,
+        "xss_recall@fpr0.001": 0.914,
+        "sqli_recall@fpr0.001": 0.782,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.881,
+        "xss_recall@fpr0.01": 0.944,
+        "sqli_recall@fpr0.01": 0.818,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9649353333333335,
+        "recall@fpr0.001": 0.832,
+        "xss_recall@fpr0.001": 0.904,
+        "sqli_recall@fpr0.001": 0.76,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.885,
+        "xss_recall@fpr0.01": 0.952,
+        "sqli_recall@fpr0.01": 0.818,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.968854,
+        "recall@fpr0.001": 0.816,
+        "xss_recall@fpr0.001": 0.892,
+        "sqli_recall@fpr0.001": 0.74,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.886,
+        "xss_recall@fpr0.01": 0.96,
+        "sqli_recall@fpr0.01": 0.812,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "fedprox_mu0.01": {
+      "42": {
+        "roc_auc": 0.9524980000000001,
+        "recall@fpr0.001": 0.805,
+        "xss_recall@fpr0.001": 0.922,
+        "sqli_recall@fpr0.001": 0.688,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.838,
+        "xss_recall@fpr0.01": 0.952,
+        "sqli_recall@fpr0.01": 0.724,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.9667153333333333,
+        "recall@fpr0.001": 0.801,
+        "xss_recall@fpr0.001": 0.864,
+        "sqli_recall@fpr0.001": 0.738,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.857,
+        "xss_recall@fpr0.01": 0.936,
+        "sqli_recall@fpr0.01": 0.778,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.9689593333333333,
+        "recall@fpr0.001": 0.813,
+        "xss_recall@fpr0.001": 0.856,
+        "sqli_recall@fpr0.001": 0.77,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.869,
+        "xss_recall@fpr0.01": 0.918,
+        "sqli_recall@fpr0.01": 0.82,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9692413333333333,
+        "recall@fpr0.001": 0.808,
+        "xss_recall@fpr0.001": 0.87,
+        "sqli_recall@fpr0.001": 0.746,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.868,
+        "xss_recall@fpr0.01": 0.922,
+        "sqli_recall@fpr0.01": 0.814,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.9569266666666667,
+        "recall@fpr0.001": 0.694,
+        "xss_recall@fpr0.001": 0.758,
+        "sqli_recall@fpr0.001": 0.63,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.841,
+        "xss_recall@fpr0.01": 0.916,
+        "sqli_recall@fpr0.01": 0.766,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.9663306666666666,
+        "recall@fpr0.001": 0.832,
+        "xss_recall@fpr0.001": 0.908,
+        "sqli_recall@fpr0.001": 0.756,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.866,
+        "xss_recall@fpr0.01": 0.93,
+        "sqli_recall@fpr0.01": 0.802,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9603066666666668,
+        "recall@fpr0.001": 0.821,
+        "xss_recall@fpr0.001": 0.888,
+        "sqli_recall@fpr0.001": 0.754,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.859,
+        "xss_recall@fpr0.01": 0.928,
+        "sqli_recall@fpr0.01": 0.79,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.9666620000000001,
+        "recall@fpr0.001": 0.816,
+        "xss_recall@fpr0.001": 0.892,
+        "sqli_recall@fpr0.001": 0.74,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.869,
+        "xss_recall@fpr0.01": 0.938,
+        "sqli_recall@fpr0.01": 0.8,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "fedprox_mu0.1": {
+      "42": {
+        "roc_auc": 0.9236420000000001,
+        "recall@fpr0.001": 0.55,
+        "xss_recall@fpr0.001": 0.674,
+        "sqli_recall@fpr0.001": 0.426,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.603,
+        "xss_recall@fpr0.01": 0.73,
+        "sqli_recall@fpr0.01": 0.476,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.9224133333333333,
+        "recall@fpr0.001": 0.473,
+        "xss_recall@fpr0.001": 0.528,
+        "sqli_recall@fpr0.001": 0.418,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.517,
+        "xss_recall@fpr0.01": 0.584,
+        "sqli_recall@fpr0.01": 0.45,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.9196546666666667,
+        "recall@fpr0.001": 0.428,
+        "xss_recall@fpr0.001": 0.502,
+        "sqli_recall@fpr0.001": 0.354,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.483,
+        "xss_recall@fpr0.01": 0.566,
+        "sqli_recall@fpr0.01": 0.4,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9305993333333333,
+        "recall@fpr0.001": 0.492,
+        "xss_recall@fpr0.001": 0.538,
+        "sqli_recall@fpr0.001": 0.446,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.536,
+        "xss_recall@fpr0.01": 0.602,
+        "sqli_recall@fpr0.01": 0.47,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.9156813333333333,
+        "recall@fpr0.001": 0.466,
+        "xss_recall@fpr0.001": 0.51,
+        "sqli_recall@fpr0.001": 0.422,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.517,
+        "xss_recall@fpr0.01": 0.56,
+        "sqli_recall@fpr0.01": 0.474,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.9334166666666666,
+        "recall@fpr0.001": 0.48,
+        "xss_recall@fpr0.001": 0.568,
+        "sqli_recall@fpr0.001": 0.392,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.54,
+        "xss_recall@fpr0.01": 0.624,
+        "sqli_recall@fpr0.01": 0.456,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9232220000000001,
+        "recall@fpr0.001": 0.412,
+        "xss_recall@fpr0.001": 0.494,
+        "sqli_recall@fpr0.001": 0.33,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.449,
+        "xss_recall@fpr0.01": 0.534,
+        "sqli_recall@fpr0.01": 0.364,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.9297713333333333,
+        "recall@fpr0.001": 0.485,
+        "xss_recall@fpr0.001": 0.576,
+        "sqli_recall@fpr0.001": 0.394,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.532,
+        "xss_recall@fpr0.01": 0.624,
+        "sqli_recall@fpr0.01": 0.44,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "fedprox_mu1.0": {
+      "42": {
+        "roc_auc": 0.8028206666666666,
+        "recall@fpr0.001": 0.3,
+        "xss_recall@fpr0.001": 0.384,
+        "sqli_recall@fpr0.001": 0.216,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.315,
+        "xss_recall@fpr0.01": 0.394,
+        "sqli_recall@fpr0.01": 0.236,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.7943926666666667,
+        "recall@fpr0.001": 0.278,
+        "xss_recall@fpr0.001": 0.338,
+        "sqli_recall@fpr0.001": 0.218,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.305,
+        "xss_recall@fpr0.01": 0.358,
+        "sqli_recall@fpr0.01": 0.252,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.7914919999999999,
+        "recall@fpr0.001": 0.286,
+        "xss_recall@fpr0.001": 0.358,
+        "sqli_recall@fpr0.001": 0.214,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.3,
+        "xss_recall@fpr0.01": 0.368,
+        "sqli_recall@fpr0.01": 0.232,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.8003926666666666,
+        "recall@fpr0.001": 0.269,
+        "xss_recall@fpr0.001": 0.282,
+        "sqli_recall@fpr0.001": 0.256,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.285,
+        "xss_recall@fpr0.01": 0.296,
+        "sqli_recall@fpr0.01": 0.274,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.8056773333333332,
+        "recall@fpr0.001": 0.254,
+        "xss_recall@fpr0.001": 0.266,
+        "sqli_recall@fpr0.001": 0.242,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.273,
+        "xss_recall@fpr0.01": 0.28,
+        "sqli_recall@fpr0.01": 0.266,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.8011873333333333,
+        "recall@fpr0.001": 0.27,
+        "xss_recall@fpr0.001": 0.316,
+        "sqli_recall@fpr0.001": 0.224,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.284,
+        "xss_recall@fpr0.01": 0.328,
+        "sqli_recall@fpr0.01": 0.24,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.7960273333333333,
+        "recall@fpr0.001": 0.205,
+        "xss_recall@fpr0.001": 0.242,
+        "sqli_recall@fpr0.001": 0.168,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.224,
+        "xss_recall@fpr0.01": 0.256,
+        "sqli_recall@fpr0.01": 0.192,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.7965733333333334,
+        "recall@fpr0.001": 0.269,
+        "xss_recall@fpr0.001": 0.322,
+        "sqli_recall@fpr0.001": 0.216,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.288,
+        "xss_recall@fpr0.01": 0.338,
+        "sqli_recall@fpr0.01": 0.238,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "isolated_A": {
+      "42": {
+        "roc_auc": 0.9490886666666667,
+        "recall@fpr0.001": 0.787,
+        "xss_recall@fpr0.001": 0.9,
+        "sqli_recall@fpr0.001": 0.674,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.858,
+        "xss_recall@fpr0.01": 0.962,
+        "sqli_recall@fpr0.01": 0.754,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.9644066666666666,
+        "recall@fpr0.001": 0.855,
+        "xss_recall@fpr0.001": 0.938,
+        "sqli_recall@fpr0.001": 0.772,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.895,
+        "xss_recall@fpr0.01": 0.968,
+        "sqli_recall@fpr0.01": 0.822,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.973472,
+        "recall@fpr0.001": 0.599,
+        "xss_recall@fpr0.001": 0.67,
+        "sqli_recall@fpr0.001": 0.528,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.897,
+        "xss_recall@fpr0.01": 0.948,
+        "sqli_recall@fpr0.01": 0.846,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9672586666666667,
+        "recall@fpr0.001": 0.824,
+        "xss_recall@fpr0.001": 0.874,
+        "sqli_recall@fpr0.001": 0.774,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.889,
+        "xss_recall@fpr0.01": 0.938,
+        "sqli_recall@fpr0.01": 0.84,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.9545080000000001,
+        "recall@fpr0.001": 0.684,
+        "xss_recall@fpr0.001": 0.752,
+        "sqli_recall@fpr0.001": 0.616,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.85,
+        "xss_recall@fpr0.01": 0.93,
+        "sqli_recall@fpr0.01": 0.77,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.9620926666666667,
+        "recall@fpr0.001": 0.837,
+        "xss_recall@fpr0.001": 0.922,
+        "sqli_recall@fpr0.001": 0.752,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.864,
+        "xss_recall@fpr0.01": 0.94,
+        "sqli_recall@fpr0.01": 0.788,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9612360000000001,
+        "recall@fpr0.001": 0.782,
+        "xss_recall@fpr0.001": 0.866,
+        "sqli_recall@fpr0.001": 0.698,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.852,
+        "xss_recall@fpr0.01": 0.928,
+        "sqli_recall@fpr0.01": 0.776,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.9585466666666667,
+        "recall@fpr0.001": 0.779,
+        "xss_recall@fpr0.001": 0.838,
+        "sqli_recall@fpr0.001": 0.72,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.863,
+        "xss_recall@fpr0.01": 0.946,
+        "sqli_recall@fpr0.01": 0.78,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "isolated_B": {
+      "42": {
+        "roc_auc": 0.957292,
+        "recall@fpr0.001": 0.685,
+        "xss_recall@fpr0.001": 0.802,
+        "sqli_recall@fpr0.001": 0.568,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.836,
+        "xss_recall@fpr0.01": 0.948,
+        "sqli_recall@fpr0.01": 0.724,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.97079,
+        "recall@fpr0.001": 0.709,
+        "xss_recall@fpr0.001": 0.762,
+        "sqli_recall@fpr0.001": 0.656,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.871,
+        "xss_recall@fpr0.01": 0.938,
+        "sqli_recall@fpr0.01": 0.804,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.9746726666666665,
+        "recall@fpr0.001": 0.789,
+        "xss_recall@fpr0.001": 0.834,
+        "sqli_recall@fpr0.001": 0.744,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.88,
+        "xss_recall@fpr0.01": 0.924,
+        "sqli_recall@fpr0.01": 0.836,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9740613333333333,
+        "recall@fpr0.001": 0.65,
+        "xss_recall@fpr0.001": 0.714,
+        "sqli_recall@fpr0.001": 0.586,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.862,
+        "xss_recall@fpr0.01": 0.908,
+        "sqli_recall@fpr0.01": 0.816,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.962458,
+        "recall@fpr0.001": 0.506,
+        "xss_recall@fpr0.001": 0.538,
+        "sqli_recall@fpr0.001": 0.474,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.833,
+        "xss_recall@fpr0.01": 0.892,
+        "sqli_recall@fpr0.01": 0.774,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.9685533333333333,
+        "recall@fpr0.001": 0.811,
+        "xss_recall@fpr0.001": 0.882,
+        "sqli_recall@fpr0.001": 0.74,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.854,
+        "xss_recall@fpr0.01": 0.906,
+        "sqli_recall@fpr0.01": 0.802,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9670993333333332,
+        "recall@fpr0.001": 0.765,
+        "xss_recall@fpr0.001": 0.838,
+        "sqli_recall@fpr0.001": 0.692,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.879,
+        "xss_recall@fpr0.01": 0.938,
+        "sqli_recall@fpr0.01": 0.82,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.9696206666666667,
+        "recall@fpr0.001": 0.776,
+        "xss_recall@fpr0.001": 0.874,
+        "sqli_recall@fpr0.001": 0.678,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.878,
+        "xss_recall@fpr0.01": 0.946,
+        "sqli_recall@fpr0.01": 0.81,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "regex": {
+      "42": {
+        "roc_auc": 0.872,
+        "recall@fpr0.001": 0.744,
+        "xss_recall@fpr0.001": 0.846,
+        "sqli_recall@fpr0.001": 0.642,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.744,
+        "xss_recall@fpr0.01": 0.846,
+        "sqli_recall@fpr0.01": 0.642,
+        "actual_fpr@0.01": 0.0
+      },
+      "43": {
+        "roc_auc": 0.883,
+        "recall@fpr0.001": 0.766,
+        "xss_recall@fpr0.001": 0.828,
+        "sqli_recall@fpr0.001": 0.704,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.766,
+        "xss_recall@fpr0.01": 0.828,
+        "sqli_recall@fpr0.01": 0.704,
+        "actual_fpr@0.01": 0.0
+      },
+      "44": {
+        "roc_auc": 0.8745,
+        "recall@fpr0.001": 0.749,
+        "xss_recall@fpr0.001": 0.816,
+        "sqli_recall@fpr0.001": 0.682,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.749,
+        "xss_recall@fpr0.01": 0.816,
+        "sqli_recall@fpr0.01": 0.682,
+        "actual_fpr@0.01": 0.0
+      },
+      "45": {
+        "roc_auc": 0.8745,
+        "recall@fpr0.001": 0.749,
+        "xss_recall@fpr0.001": 0.818,
+        "sqli_recall@fpr0.001": 0.68,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.749,
+        "xss_recall@fpr0.01": 0.818,
+        "sqli_recall@fpr0.01": 0.68,
+        "actual_fpr@0.01": 0.0
+      },
+      "46": {
+        "roc_auc": 0.872,
+        "recall@fpr0.001": 0.744,
+        "xss_recall@fpr0.001": 0.798,
+        "sqli_recall@fpr0.001": 0.69,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.744,
+        "xss_recall@fpr0.01": 0.798,
+        "sqli_recall@fpr0.01": 0.69,
+        "actual_fpr@0.01": 0.0
+      },
+      "47": {
+        "roc_auc": 0.8634999999999999,
+        "recall@fpr0.001": 0.727,
+        "xss_recall@fpr0.001": 0.812,
+        "sqli_recall@fpr0.001": 0.642,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.727,
+        "xss_recall@fpr0.01": 0.812,
+        "sqli_recall@fpr0.01": 0.642,
+        "actual_fpr@0.01": 0.0
+      },
+      "48": {
+        "roc_auc": 0.8825000000000001,
+        "recall@fpr0.001": 0.765,
+        "xss_recall@fpr0.001": 0.834,
+        "sqli_recall@fpr0.001": 0.696,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.765,
+        "xss_recall@fpr0.01": 0.834,
+        "sqli_recall@fpr0.01": 0.696,
+        "actual_fpr@0.01": 0.0
+      },
+      "49": {
+        "roc_auc": 0.865,
+        "recall@fpr0.001": 0.73,
+        "xss_recall@fpr0.001": 0.786,
+        "sqli_recall@fpr0.001": 0.674,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.73,
+        "xss_recall@fpr0.01": 0.786,
+        "sqli_recall@fpr0.01": 0.674,
+        "actual_fpr@0.01": 0.0
+      }
+    },
+    "charclass": {
+      "42": {
+        "roc_auc": 0.809663,
+        "recall@fpr0.001": 0.097,
+        "xss_recall@fpr0.001": 0.14,
+        "sqli_recall@fpr0.001": 0.054,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.174,
+        "xss_recall@fpr0.01": 0.234,
+        "sqli_recall@fpr0.01": 0.114,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.8126216666666668,
+        "recall@fpr0.001": 0.031,
+        "xss_recall@fpr0.001": 0.026,
+        "sqli_recall@fpr0.001": 0.036,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.164,
+        "xss_recall@fpr0.01": 0.186,
+        "sqli_recall@fpr0.01": 0.142,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.8041013333333333,
+        "recall@fpr0.001": 0.172,
+        "xss_recall@fpr0.001": 0.192,
+        "sqli_recall@fpr0.001": 0.152,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.187,
+        "xss_recall@fpr0.01": 0.212,
+        "sqli_recall@fpr0.01": 0.162,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.8056949999999999,
+        "recall@fpr0.001": 0.032,
+        "xss_recall@fpr0.001": 0.034,
+        "sqli_recall@fpr0.001": 0.03,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.174,
+        "xss_recall@fpr0.01": 0.234,
+        "sqli_recall@fpr0.01": 0.114,
+        "actual_fpr@0.01": 0.009333333333333334
+      },
+      "46": {
+        "roc_auc": 0.8025686666666667,
+        "recall@fpr0.001": 0.141,
+        "xss_recall@fpr0.001": 0.172,
+        "sqli_recall@fpr0.001": 0.11,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.159,
+        "xss_recall@fpr0.01": 0.186,
+        "sqli_recall@fpr0.01": 0.132,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.8257633333333334,
+        "recall@fpr0.001": 0.13,
+        "xss_recall@fpr0.001": 0.178,
+        "sqli_recall@fpr0.001": 0.082,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.168,
+        "xss_recall@fpr0.01": 0.216,
+        "sqli_recall@fpr0.01": 0.12,
+        "actual_fpr@0.01": 0.009333333333333334
+      },
+      "48": {
+        "roc_auc": 0.8094236666666665,
+        "recall@fpr0.001": 0.166,
+        "xss_recall@fpr0.001": 0.22,
+        "sqli_recall@fpr0.001": 0.112,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.208,
+        "xss_recall@fpr0.01": 0.276,
+        "sqli_recall@fpr0.01": 0.14,
+        "actual_fpr@0.01": 0.009333333333333334
+      },
+      "49": {
+        "roc_auc": 0.8079026666666665,
+        "recall@fpr0.001": 0.173,
+        "xss_recall@fpr0.001": 0.204,
+        "sqli_recall@fpr0.001": 0.142,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.188,
+        "xss_recall@fpr0.01": 0.23,
+        "sqli_recall@fpr0.01": 0.146,
+        "actual_fpr@0.01": 0.009333333333333334
+      }
+    },
+    "libinjection": {
+      "42": {
+        "roc_auc": 0.8015,
+        "recall@fpr0.001": 0.603,
+        "xss_recall@fpr0.001": 0.796,
+        "sqli_recall@fpr0.001": 0.41,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.603,
+        "xss_recall@fpr0.01": 0.796,
+        "sqli_recall@fpr0.01": 0.41,
+        "actual_fpr@0.01": 0.0
+      },
+      "43": {
+        "roc_auc": 0.8029999999999999,
+        "recall@fpr0.001": 0.606,
+        "xss_recall@fpr0.001": 0.802,
+        "sqli_recall@fpr0.001": 0.41,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.606,
+        "xss_recall@fpr0.01": 0.802,
+        "sqli_recall@fpr0.01": 0.41,
+        "actual_fpr@0.01": 0.0
+      },
+      "44": {
+        "roc_auc": 0.7915,
+        "recall@fpr0.001": 0.583,
+        "xss_recall@fpr0.001": 0.774,
+        "sqli_recall@fpr0.001": 0.392,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.583,
+        "xss_recall@fpr0.01": 0.774,
+        "sqli_recall@fpr0.01": 0.392,
+        "actual_fpr@0.01": 0.0
+      },
+      "45": {
+        "roc_auc": 0.782,
+        "recall@fpr0.001": 0.564,
+        "xss_recall@fpr0.001": 0.794,
+        "sqli_recall@fpr0.001": 0.334,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.564,
+        "xss_recall@fpr0.01": 0.794,
+        "sqli_recall@fpr0.01": 0.334,
+        "actual_fpr@0.01": 0.0
+      },
+      "46": {
+        "roc_auc": 0.8001723333333334,
+        "recall@fpr0.001": 0.601,
+        "xss_recall@fpr0.001": 0.788,
+        "sqli_recall@fpr0.001": 0.414,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.601,
+        "xss_recall@fpr0.01": 0.788,
+        "sqli_recall@fpr0.01": 0.414,
+        "actual_fpr@0.01": 0.0006666666666666666
+      },
+      "47": {
+        "roc_auc": 0.7849999999999999,
+        "recall@fpr0.001": 0.57,
+        "xss_recall@fpr0.001": 0.822,
+        "sqli_recall@fpr0.001": 0.318,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.57,
+        "xss_recall@fpr0.01": 0.822,
+        "sqli_recall@fpr0.01": 0.318,
+        "actual_fpr@0.01": 0.0
+      },
+      "48": {
+        "roc_auc": 0.7935,
+        "recall@fpr0.001": 0.587,
+        "xss_recall@fpr0.001": 0.79,
+        "sqli_recall@fpr0.001": 0.384,
+        "actual_fpr@0.001": 0.0,
+        "recall@fpr0.01": 0.587,
+        "xss_recall@fpr0.01": 0.79,
+        "sqli_recall@fpr0.01": 0.384,
+        "actual_fpr@0.01": 0.0
+      },
+      "49": {
+        "roc_auc": 0.7781686666666666,
+        "recall@fpr0.001": 0.557,
+        "xss_recall@fpr0.001": 0.744,
+        "sqli_recall@fpr0.001": 0.37,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.557,
+        "xss_recall@fpr0.01": 0.744,
+        "sqli_recall@fpr0.01": 0.37,
+        "actual_fpr@0.01": 0.0006666666666666666
+      }
+    },
+    "gbt": {
+      "42": {
+        "roc_auc": 0.9816980000000001,
+        "recall@fpr0.001": 0.892,
+        "xss_recall@fpr0.001": 0.964,
+        "sqli_recall@fpr0.001": 0.82,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.933,
+        "xss_recall@fpr0.01": 0.996,
+        "sqli_recall@fpr0.01": 0.87,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.9872980000000001,
+        "recall@fpr0.001": 0.901,
+        "xss_recall@fpr0.001": 0.954,
+        "sqli_recall@fpr0.001": 0.848,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.954,
+        "xss_recall@fpr0.01": 0.986,
+        "sqli_recall@fpr0.01": 0.922,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.9932286666666666,
+        "recall@fpr0.001": 0.927,
+        "xss_recall@fpr0.001": 0.968,
+        "sqli_recall@fpr0.001": 0.886,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.97,
+        "xss_recall@fpr0.01": 0.998,
+        "sqli_recall@fpr0.01": 0.942,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9905699999999998,
+        "recall@fpr0.001": 0.931,
+        "xss_recall@fpr0.001": 0.968,
+        "sqli_recall@fpr0.001": 0.894,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.96,
+        "xss_recall@fpr0.01": 0.99,
+        "sqli_recall@fpr0.01": 0.93,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.9861426666666666,
+        "recall@fpr0.001": 0.82,
+        "xss_recall@fpr0.001": 0.904,
+        "sqli_recall@fpr0.001": 0.736,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.934,
+        "xss_recall@fpr0.01": 0.986,
+        "sqli_recall@fpr0.01": 0.882,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.9894799999999998,
+        "recall@fpr0.001": 0.872,
+        "xss_recall@fpr0.001": 0.932,
+        "sqli_recall@fpr0.001": 0.812,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.942,
+        "xss_recall@fpr0.01": 0.99,
+        "sqli_recall@fpr0.01": 0.894,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9919886666666666,
+        "recall@fpr0.001": 0.885,
+        "xss_recall@fpr0.001": 0.948,
+        "sqli_recall@fpr0.001": 0.822,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.95,
+        "xss_recall@fpr0.01": 0.99,
+        "sqli_recall@fpr0.01": 0.91,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.9890373333333333,
+        "recall@fpr0.001": 0.919,
+        "xss_recall@fpr0.001": 0.97,
+        "sqli_recall@fpr0.001": 0.868,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.955,
+        "xss_recall@fpr0.01": 0.994,
+        "sqli_recall@fpr0.01": 0.916,
+        "actual_fpr@0.01": 0.01
+      }
+    },
+    "mlp": {
+      "42": {
+        "roc_auc": 0.96892,
+        "recall@fpr0.001": 0.821,
+        "xss_recall@fpr0.001": 0.892,
+        "sqli_recall@fpr0.001": 0.75,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.905,
+        "xss_recall@fpr0.01": 0.972,
+        "sqli_recall@fpr0.01": 0.838,
+        "actual_fpr@0.01": 0.01
+      },
+      "43": {
+        "roc_auc": 0.9727826666666667,
+        "recall@fpr0.001": 0.835,
+        "xss_recall@fpr0.001": 0.884,
+        "sqli_recall@fpr0.001": 0.786,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.906,
+        "xss_recall@fpr0.01": 0.946,
+        "sqli_recall@fpr0.01": 0.866,
+        "actual_fpr@0.01": 0.01
+      },
+      "44": {
+        "roc_auc": 0.9884666666666667,
+        "recall@fpr0.001": 0.69,
+        "xss_recall@fpr0.001": 0.748,
+        "sqli_recall@fpr0.001": 0.632,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.94,
+        "xss_recall@fpr0.01": 0.972,
+        "sqli_recall@fpr0.01": 0.908,
+        "actual_fpr@0.01": 0.01
+      },
+      "45": {
+        "roc_auc": 0.9807006666666666,
+        "recall@fpr0.001": 0.741,
+        "xss_recall@fpr0.001": 0.776,
+        "sqli_recall@fpr0.001": 0.706,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.908,
+        "xss_recall@fpr0.01": 0.936,
+        "sqli_recall@fpr0.01": 0.88,
+        "actual_fpr@0.01": 0.01
+      },
+      "46": {
+        "roc_auc": 0.9580753333333333,
+        "recall@fpr0.001": 0.765,
+        "xss_recall@fpr0.001": 0.822,
+        "sqli_recall@fpr0.001": 0.708,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.865,
+        "xss_recall@fpr0.01": 0.918,
+        "sqli_recall@fpr0.01": 0.812,
+        "actual_fpr@0.01": 0.01
+      },
+      "47": {
+        "roc_auc": 0.9794366666666667,
+        "recall@fpr0.001": 0.826,
+        "xss_recall@fpr0.001": 0.868,
+        "sqli_recall@fpr0.001": 0.784,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.898,
+        "xss_recall@fpr0.01": 0.942,
+        "sqli_recall@fpr0.01": 0.854,
+        "actual_fpr@0.01": 0.01
+      },
+      "48": {
+        "roc_auc": 0.9798020000000001,
+        "recall@fpr0.001": 0.83,
+        "xss_recall@fpr0.001": 0.896,
+        "sqli_recall@fpr0.001": 0.764,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.909,
+        "xss_recall@fpr0.01": 0.958,
+        "sqli_recall@fpr0.01": 0.86,
+        "actual_fpr@0.01": 0.01
+      },
+      "49": {
+        "roc_auc": 0.979362,
+        "recall@fpr0.001": 0.778,
+        "xss_recall@fpr0.001": 0.842,
+        "sqli_recall@fpr0.001": 0.714,
+        "actual_fpr@0.001": 0.0006666666666666666,
+        "recall@fpr0.01": 0.904,
+        "xss_recall@fpr0.01": 0.946,
+        "sqli_recall@fpr0.01": 0.862,
+        "actual_fpr@0.01": 0.01
+      }
+    }
+  }
+}
